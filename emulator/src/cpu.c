@@ -1,3 +1,4 @@
+// cpu.c
 #include "cpu.h"
 #include "memory.h"
 #include "instructions.h"
@@ -21,6 +22,8 @@ cpu_t *cpu_init(void) {
 	}
 	cpu->pc = 0;
 	cpu->running = 1;
+
+	cpu->x[2] = STACK_TOP;
 
 	return cpu;
 }
