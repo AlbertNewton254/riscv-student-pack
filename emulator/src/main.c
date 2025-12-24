@@ -24,7 +24,7 @@ static int load_program(memory_t *mem, const char *filename, uint32_t load_addre
 	size_t read_size = fread(&mem->data[load_address], 1, file_size, file);
 	fclose(file);
 
-	if (read_size != (size_t)file_size) {  /* Fixed signedness warning */
+	if (read_size != (size_t)file_size) {
 		fprintf(stderr, "Error: Failed to read entire file\n");
 		return -1;
 	}
@@ -37,7 +37,14 @@ static void dump_registers(cpu_t *cpu) {
 	printf("\nRegister Dump:\n");
 	printf("PC: 0x%08x\n", cpu->pc);
 
-	for (int i = 0; i < 32; i += 4) {
+	printf("x0 (zero): 0x%08x\tx1 (ra): 0x%08x\tx2 (sp): 0x%08x\tx3 (gp): 0x%08x\n",
+		cpu->x[0], cpu->x[1], cpu->x[2], cpu->x[3]);
+	printf("x4 (tp): 0x%08x\tx5 (t0): 0x%08x\tx6 (t1): 0x%08x\tx7 (t2): 0x%08x\n",
+		cpu->x[4], cpu->x[5], cpu->x[6], cpu->x[7]);
+	printf("x8 (s0): 0x%08x\tx9 (s1): 0x%08x\tx10(a0): 0x%08x\tx11(a1): 0x%08x\n",
+		cpu->x[8], cpu->x[9], cpu->x[10], cpu->x[11]);
+
+	for (int i = 12; i < 32; i += 4) {
 		printf("x%02d: 0x%08x\tx%02d: 0x%08x\tx%02d: 0x%08x\tx%02d: 0x%08x\n",
 			i, cpu->x[i],
 			i+1, cpu->x[i+1],
@@ -58,8 +65,10 @@ int main(int argc, char *argv[]) {
 	}
 
 	printf("Initializing RISC-V interpreter...\n");
+	printf("Stack: 0x%08x - 0x%08x (size: %d bytes)\n",
+		STACK_BASE, STACK_TOP, STACK_SIZE);
 
-	memory_t *mem = memory_init(16 * 1024 * 1024);
+	memory_t *mem = memory_init(MEMORY_SIZE);
 	if (!mem) {
 		fprintf(stderr, "Error: Failed to initialize memory\n");
 		return 1;
@@ -80,7 +89,11 @@ int main(int argc, char *argv[]) {
 
 	cpu->pc = load_address;
 
-	printf("Starting execution...\n");
+	printf("\nStarting execution...\n");
+	printf("Initial SP: 0x%08x\n", cpu->x[2]);
+	printf("Initial PC: 0x%08x\n", cpu->pc);
+	printf("\n");
+
 	int step_count = 0;
 	const int max_steps = 1000000;
 

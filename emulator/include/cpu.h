@@ -29,6 +29,14 @@ typedef enum {
 #define SYS_lseek		62
 
 /**
+ * Memory layout constants
+ */
+#define MEMORY_SIZE		(16 * 1024 * 1024)
+#define STACK_BASE		0x80000000
+#define STACK_SIZE		(1 * 1024 * 1024)
+#define STACK_TOP		(STACK_BASE + STACK_SIZE)
+
+/**
  * CPU state structure
  * x: 32 general-purpose registers (x0-x31)
  * pc: Program counter
