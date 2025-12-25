@@ -164,4 +164,20 @@ void first_pass(FILE *f, assembler_state_t *state);
  */
 void second_pass(FILE *in, FILE *out, const assembler_state_t *state);
 
+/**
+ * Parse C-style escaped string literal.
+ *
+ * Supports:
+ *   \n  newline
+ *   \t  tab
+ *   \r  carriage return
+ *   \\  backslash
+ *   \"  double quote
+ *
+ * src: Pointer to first char AFTER opening quote
+ * out: Output buffer (NULL = count only)
+ * returns: Number of bytes produced
+ */
+size_t parse_escaped_string(const char *src, uint8_t *out);
+
 #endif /* ASSEMBLER_H */
