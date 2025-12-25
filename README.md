@@ -163,9 +163,15 @@ This project is released under the [MIT License](./LICENSE). For educational use
 
 ## Roadmap
 
+### Emulator
+
 - [ ] Add support for RV32IM (M extension: multiplication/division)
 - [ ] Expand the set of supported Linux syscalls
 - [ ] Improve error reporting and debugging features
+
+### Assembler
+
+- [ ] Add support to pseudoinstructions
 
 ---
 
