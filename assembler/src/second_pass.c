@@ -1,4 +1,3 @@
-// second_pass.c
 #include "assembler.h"
 #include <ctype.h>
 #include <stdlib.h>
@@ -143,7 +142,7 @@ static void parse_instruction_args(const char *s, char *op, char *a1, char *a2, 
 	}
 }
 
-static void process_data_directive(FILE *out, char *s, uint32_t *pc) {
+static void process_data_directive(FILE *out, const assembler_state_t *state, char *s, uint32_t *pc) {
 	s = trim(s);
 
 	if (!strncmp(s, ".ascii", 6)) {
@@ -182,11 +181,24 @@ static void process_data_directive(FILE *out, char *s, uint32_t *pc) {
 			while (*ptr == ',' || isspace(*ptr)) ptr++;
 		}
 
+	} else if (!strncmp(s, ".half", 5)) {
+		char *ptr = s + 5;
+		while (*ptr) {
+			if (*ptr != ' ' && *ptr != '\t' && *ptr != ',') {
+				int32_t val = parse_imm(state, ptr);
+				ptr += strspn(ptr, "0123456789abcdefABCDEFxX-+");
+				uint16_t h = val & 0xFFFF;
+				fwrite(&h, 2, 1, out);
+				(*pc) += 2;
+			}
+			while (*ptr == ',' || isspace(*ptr)) ptr++;
+		}
+
 	} else if (!strncmp(s, ".word", 5)) {
 		char *ptr = s + 5;
 		while (*ptr) {
 			if (*ptr != ' ' && *ptr != '\t' && *ptr != ',') {
-				int32_t val = parse_imm(NULL, ptr);
+				int32_t val = parse_imm(state, ptr);
 				ptr += strspn(ptr, "0123456789abcdefABCDEFxX-+");
 				fwrite(&val, 4, 1, out);
 				(*pc) += 4;
@@ -251,7 +263,7 @@ void second_pass(FILE *in, FILE *out, const assembler_state_t *state) {
 
 		if (*s == '.') {
 			if (current_section == SEC_DATA) {
-				process_data_directive(out, s, &pc);
+				process_data_directive(out, state, s, &pc);
 			}
 			continue;
 		}

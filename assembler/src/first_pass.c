@@ -1,4 +1,3 @@
-// first_pass.c
 #include "assembler.h"
 #include <ctype.h>
 #include <stdlib.h>
@@ -34,8 +33,15 @@ static void process_label(assembler_state_t *state, char *s) {
 	}
 
 	strcpy(state->labels[state->label_count].name, trimmed);
-	state->labels[state->label_count].addr =
-		(state->current_section == SEC_TEXT) ? state->pc_text : (state->pc_data + state->pc_text);
+
+	/* FIX: Calculate correct address for data labels */
+	if (state->current_section == SEC_TEXT) {
+		state->labels[state->label_count].addr = state->pc_text;
+	} else {
+		/* Data labels get address = text_size + current_data_offset */
+		state->labels[state->label_count].addr = state->pc_text + state->pc_data;
+	}
+
 	state->label_count++;
 }
 

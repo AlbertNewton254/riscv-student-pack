@@ -8,7 +8,7 @@
 #define MAX_LABELS 256
 
 /* Maximum line length for assembly source */
-#define MAX_LINE   512
+#define MAX_LINE	512
 
 /**
  * Assembly section types
@@ -68,6 +68,14 @@ int reg_num(const char *r);
  * exits: If label not found
  */
 uint32_t find_label(const assembler_state_t *state, const char *name);
+
+/**
+ * Parse immediate value or label
+ * state: Assembler state (for label lookup)
+ * s: String containing immediate value or label name
+ * returns: Parsed 32-bit immediate value
+ */
+int32_t parse_imm(const assembler_state_t *state, const char *s);
 
 /**
  * Encode R-type (register) instruction
@@ -138,6 +146,22 @@ uint32_t encode_j(int32_t imm, uint32_t rd, uint32_t opcode);
 
 
 /**
+ * Parse C-style escaped string literal.
+ *
+ * Supports:
+ *   \n  newline
+ *   \t  tab
+ *   \r  carriage return
+ *   \\  backslash
+ *   \"  double quote
+ *
+ * src: Pointer to first char AFTER opening quote
+ * out: Output buffer (NULL = count only)
+ * returns: Number of bytes produced
+ */
+size_t parse_escaped_string(const char *src, uint8_t *out);
+
+/**
  * First assembly pass: label resolution and address calculation
  * f: Input assembly file stream
  * state: Assembler state to initialize and populate
@@ -163,21 +187,5 @@ void first_pass(FILE *f, assembler_state_t *state);
  * 4. Label reference resolution
  */
 void second_pass(FILE *in, FILE *out, const assembler_state_t *state);
-
-/**
- * Parse C-style escaped string literal.
- *
- * Supports:
- *   \n  newline
- *   \t  tab
- *   \r  carriage return
- *   \\  backslash
- *   \"  double quote
- *
- * src: Pointer to first char AFTER opening quote
- * out: Output buffer (NULL = count only)
- * returns: Number of bytes produced
- */
-size_t parse_escaped_string(const char *src, uint8_t *out);
 
 #endif /* ASSEMBLER_H */
