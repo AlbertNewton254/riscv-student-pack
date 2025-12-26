@@ -1,4 +1,3 @@
-// utils.c
 #include "assembler.h"
 #include <ctype.h>
 #include <stdlib.h>
@@ -78,4 +77,3 @@ size_t parse_escaped_string(const char *src, uint8_t *out) {
 
 	return count;
 }
-
