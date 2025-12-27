@@ -24,10 +24,12 @@ typedef enum {
  * Label definition structure
  * name: Label identifier (max 63 chars + null terminator)
  * addr: Absolute address assigned to label
+ * section: Section where label is defined
  */
 typedef struct {
 	char name[64];
 	uint32_t addr;
+	section_t section;  // Added: track which section the label belongs to
 } label_t;
 
 /**
@@ -37,6 +39,8 @@ typedef struct {
  * pc_text: Program counter for text section
  * pc_data: Program counter for data section
  * current_section: Active section during parsing
+ * text_size: Final size of text section (calculated after first pass)
+ * data_size: Final size of data section (calculated after first pass)
  */
 typedef struct {
 	label_t labels[MAX_LABELS];
@@ -44,6 +48,8 @@ typedef struct {
 	uint32_t pc_text;
 	uint32_t pc_data;
 	section_t current_section;
+	uint32_t text_size;
+	uint32_t data_size;
 } assembler_state_t;
 
 /**
@@ -144,7 +150,6 @@ uint32_t encode_u(int32_t imm, uint32_t rd, uint32_t opcode);
  */
 uint32_t encode_j(int32_t imm, uint32_t rd, uint32_t opcode);
 
-
 /**
  * Parse C-style escaped string literal.
  *
@@ -168,23 +173,34 @@ size_t parse_escaped_string(const char *src, uint8_t *out);
  * 
  * Performs:
  * 1. Section tracking (.text, .data)
- * 2. Label address assignment
- * 3. Address calculation for text and data sections
- * 4. Data label relocation (adjusting for text section size)
+ * 2. Label address assignment (relative to section start)
+ * 3. Size calculation for text and data sections
  */
 void first_pass(FILE *f, assembler_state_t *state);
+
+/**
+ * Adjust label addresses after first pass
+ * state: Assembler state with label table and section sizes
+ * data_base: Base address for data section (typically end of text section)
+ * 
+ * Performs:
+ * 1. Converts label addresses from section-relative to absolute
+ * 2. Text labels get their relative address
+ * 3. Data labels get data_base + their relative address
+ */
+void adjust_labels(assembler_state_t *state, uint32_t data_base);
 
 /**
  * Second assembly pass: instruction encoding and output generation
  * in: Input assembly file stream (rewound after first pass)
  * out: Output binary file stream
- * state: Assembler state from first pass
+ * state: Assembler state from first pass (with adjusted labels)
  * 
  * Performs:
  * 1. Instruction parsing and encoding
  * 2. Data directive processing (.ascii, .byte)
  * 3. Binary output to appropriate file positions
- * 4. Label reference resolution
+ * 4. Label reference resolution using adjusted addresses
  */
 void second_pass(FILE *in, FILE *out, const assembler_state_t *state);
 
