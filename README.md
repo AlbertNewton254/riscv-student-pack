@@ -38,7 +38,7 @@ Both tools are written in C and designed for easy compilation and use on Linux s
 	- `.byte` (single byte data)
 - Input: `.s`/`.asm` files (plain text assembly)
 - Output: flat binary file (not ELF)
-- **Planned:** Pseudoinstructions, full RV32IM, more directives, and more syscalls.
+- **Planned:** Pseudoinstructions, more directives (.rodata and .bss), and more syscalls.
 
 #### Supported Assembly Instructions
 
@@ -172,6 +172,9 @@ This project is released under the [MIT License](./LICENSE). For educational use
 ### Assembler
 
 - [ ] Add support to pseudoinstructions
+- [ ] Add support to RV32IM (M extension: multiplication/divisoin)
+- [ ] Generate ELF (Executable and Linkable File) for full UNIX/Linux compatibility
+- [ ] Allow more than one source file for assembling
 
 ---
 
