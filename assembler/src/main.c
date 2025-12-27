@@ -1,4 +1,3 @@
-// main.c
 #include "assembler.h"
 #include <stdlib.h>
 
@@ -17,7 +16,14 @@ int main(int argc, char **argv) {
 	}
 
 	assembler_state_t state;
+
+	/* First pass: collect labels and calculate section sizes */
 	first_pass(in, &state);
+
+	/* Adjust label addresses: data section comes after text section */
+	adjust_labels(&state, state.text_size);
+
+	/* Second pass: generate output using adjusted addresses */
 	second_pass(in, out, &state);
 
 	fclose(in);
@@ -25,6 +31,6 @@ int main(int argc, char **argv) {
 
 	printf("Assembled successfully.\n");
 	printf("Text: %u bytes, Data: %u bytes, Labels: %d\n",
-		   state.pc_text, state.pc_data, state.label_count);
+		   state.text_size, state.data_size, state.label_count);
 	return 0;
 }

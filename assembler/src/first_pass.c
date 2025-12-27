@@ -33,13 +33,13 @@ static void process_label(assembler_state_t *state, char *s) {
 	}
 
 	strcpy(state->labels[state->label_count].name, trimmed);
+	state->labels[state->label_count].section = state->current_section;
 
-	/* FIX: Calculate correct address for data labels */
+	/* Store section-relative address during first pass */
 	if (state->current_section == SEC_TEXT) {
 		state->labels[state->label_count].addr = state->pc_text;
 	} else {
-		/* Data labels get address = text_size + current_data_offset */
-		state->labels[state->label_count].addr = state->pc_text + state->pc_data;
+		state->labels[state->label_count].addr = state->pc_data;
 	}
 
 	state->label_count++;
@@ -107,7 +107,6 @@ static void process_directive(assembler_state_t *state, char *s) {
 	}
 }
 
-
 void first_pass(FILE *f, assembler_state_t *state) {
 	char line[MAX_LINE];
 
@@ -160,4 +159,8 @@ void first_pass(FILE *f, assembler_state_t *state) {
 			state->pc_text += 4;
 		}
 	}
+
+	/* Store final sizes after first pass */
+	state->text_size = state->pc_text;
+	state->data_size = state->pc_data;
 }
