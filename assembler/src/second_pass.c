@@ -218,6 +218,52 @@ static void process_data_directive(FILE *out, const assembler_state_t *state, ch
 	}
 }
 
+static int is_pseudoinstruction(const char *op) {
+	return !strcmp(op, "li") || !strcmp(op, "la") ||
+		   !strcmp(op, "mv") || !strcmp(op, "nop");
+}
+
+static void process_instruction_second_pass(FILE *out, const assembler_state_t *state,
+											uint32_t *pc, const char *s) {
+	char op[16] = "", a1[32] = "", a2[32] = "", a3[32] = "";
+	parse_instruction_args(s, op, a1, a2, a3);
+
+	trim(a1);
+	trim(a2);
+	trim(a3);
+
+	if (a1[0] && a1[strlen(a1)-1] == ',') {
+		a1[strlen(a1)-1] = '\0';
+		trim(a1);
+	}
+	if (a2[0] && a2[strlen(a2)-1] == ',') {
+		a2[strlen(a2)-1] = '\0';
+		trim(a2);
+	}
+
+	if (is_pseudoinstruction(op)) {
+		char expanded[2][MAX_LINE];
+		int count = expand_pseudoinstruction(op, a1, a2, state, expanded, *pc);
+
+		for (int i = 0; i < count; i++) {
+			char exp_op[16], exp_a1[32], exp_a2[32], exp_a3[32];
+			parse_instruction_args(expanded[i], exp_op, exp_a1, exp_a2, exp_a3);
+
+			trim(exp_a1);
+			trim(exp_a2);
+			trim(exp_a3);
+
+			uint32_t instr = encode_instruction(state, *pc, exp_op, exp_a1, exp_a2, exp_a3);
+			fwrite(&instr, 4, 1, out);
+			*pc += 4;
+		}
+	} else {
+		uint32_t instr = encode_instruction(state, *pc, op, a1, a2, a3);
+		fwrite(&instr, 4, 1, out);
+		*pc += 4;
+	}
+}
+
 void second_pass(FILE *in, FILE *out, const assembler_state_t *state) {
 	char line[MAX_LINE];
 	section_t current_section = SEC_TEXT;
@@ -269,25 +315,7 @@ void second_pass(FILE *in, FILE *out, const assembler_state_t *state) {
 		}
 
 		if (current_section == SEC_TEXT) {
-			char op[16] = "", a1[32] = "", a2[32] = "", a3[32] = "";
-			parse_instruction_args(s, op, a1, a2, a3);
-
-			trim(a1);
-			trim(a2);
-			trim(a3);
-
-			if (a1[0] && a1[strlen(a1)-1] == ',') {
-				a1[strlen(a1)-1] = '\0';
-				trim(a1);
-			}
-			if (a2[0] && a2[strlen(a2)-1] == ',') {
-				a2[strlen(a2)-1] = '\0';
-				trim(a2);
-			}
-
-			uint32_t instr = encode_instruction(state, pc, op, a1, a2, a3);
-			fwrite(&instr, 4, 1, out);
-			pc += 4;
+			process_instruction_second_pass(out, state, &pc, s);
 		}
 	}
 }

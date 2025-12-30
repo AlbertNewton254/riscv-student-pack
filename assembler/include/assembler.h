@@ -204,4 +204,25 @@ void adjust_labels(assembler_state_t *state, uint32_t data_base);
  */
 void second_pass(FILE *in, FILE *out, const assembler_state_t *state);
 
+/**
+ * Expand pseudoinstruction into base RISC-V instructions
+ * op: Pseudoinstruction opcode (e.g., "li", "la", "mv", "nop")
+ * a1: First argument (destination register for most pseudoinstructions)
+ * a2: Second argument (source or immediate value)
+ * state: Assembler state for label resolution
+ * out_lines: Array to store expanded instructions (2 slots max)
+ * current_pc: Current program counter for relative calculations
+ * returns: Number of instructions generated (1 or 2)
+ * 
+ * Supported pseudoinstructions:
+ *   li rd, imm      -> lui/addi or addi depending on immediate range
+ *   la rd, label    -> auipc/addi for PC-relative addressing
+ *   mv rd, rs       -> addi rd, rs, 0
+ *   nop             -> addi x0, x0, 0
+ */
+int expand_pseudoinstruction(const char *op, const char *a1, const char *a2,
+							 const assembler_state_t *state,
+							 char out_lines[2][MAX_LINE],
+							 uint32_t current_pc);
+
 #endif /* ASSEMBLER_H */
