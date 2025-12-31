@@ -126,7 +126,6 @@ riscv-student-pack/
 │       └── test_assembler.c
 ├── emulator/
 │   ├── Makefile
-│   ├── riscv_emulator
 │   ├── include/
 │   │   ├── cpu.h
 │   │   ├── instructions.h
