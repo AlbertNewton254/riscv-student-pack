@@ -1,4 +1,4 @@
-// memory.c
+/* memory.c */
 #include "memory.h"
 #include <stdlib.h>
 #include <stdint.h>

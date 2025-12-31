@@ -1,3 +1,4 @@
+/* assembler.h */
 #ifndef ASSEMBLER_H
 #define ASSEMBLER_H
 
@@ -8,10 +9,11 @@
 #define MAX_LABELS 256
 
 /* Maximum line length for assembly source */
-#define MAX_LINE	512
+#define MAX_LINE 512
 
-/**
+/*
  * Assembly section types
+ *
  * SEC_TEXT: Executable code section
  * SEC_DATA: Data section (constants, strings, etc.)
  */
@@ -20,8 +22,9 @@ typedef enum {
 	SEC_DATA
 } section_t;
 
-/**
+/*
  * Label definition structure
+ *
  * name: Label identifier (max 63 chars + null terminator)
  * addr: Absolute address assigned to label
  * section: Section where label is defined
@@ -29,11 +32,12 @@ typedef enum {
 typedef struct {
 	char name[64];
 	uint32_t addr;
-	section_t section;  // Added: track which section the label belongs to
+	section_t section; /* track which section the label belongs to */
 } label_t;
 
-/**
+/*
  * Assembler global state structure
+ *
  * labels: Table of label definitions
  * label_count: Number of labels currently defined
  * pc_text: Program counter for text section
@@ -54,175 +58,201 @@ typedef struct {
 
 /**
  * Remove leading and trailing whitespace from string
+ *
  * s: String to trim (modified in-place)
- * returns: Pointer to trimmed string
+ *
+ * Output: Pointer to trimmed string
  */
 char *trim(char *s);
 
 /**
  * Convert register name string to register number
+ *
  * r: Register name (e.g., "x1", "x31")
- * returns: Register number (0-31) or -1 if invalid
+ *
+ * Output: Register number (0-31) or -1 if invalid
  */
 int reg_num(const char *r);
 
 /**
  * Look up label address by name
+ *
  * state: Assembler state containing label table
  * name: Label name to search for
- * returns: Address associated with label
- * exits: If label not found
+ *
+ * Output: Address associated with label
+ *
+ * Performs:
+ * Exits if label not found
  */
 uint32_t find_label(const assembler_state_t *state, const char *name);
 
 /**
  * Parse immediate value or label
+ *
  * state: Assembler state (for label lookup)
  * s: String containing immediate value or label name
- * returns: Parsed 32-bit immediate value
+ *
+ * Output: Parsed 32-bit immediate value
  */
 int32_t parse_imm(const assembler_state_t *state, const char *s);
 
 /**
  * Encode R-type (register) instruction
+ *
  * funct7: 7-bit function code (upper bits)
  * rs2: Source register 2 (5 bits)
  * rs1: Source register 1 (5 bits)
  * funct3: 3-bit function code
  * rd: Destination register (5 bits)
  * opcode: 7-bit opcode
- * returns: Encoded 32-bit instruction
+ *
+ * Output: Encoded 32-bit instruction
  */
 uint32_t encode_r(uint32_t funct7, uint32_t rs2, uint32_t rs1,
-				  uint32_t funct3, uint32_t rd, uint32_t opcode);
+		uint32_t funct3, uint32_t rd, uint32_t opcode);
 
 /**
  * Encode I-type (immediate) instruction
+ *
  * imm: 12-bit immediate value (sign-extended)
  * rs1: Source register 1 (5 bits)
  * funct3: 3-bit function code
  * rd: Destination register (5 bits)
  * opcode: 7-bit opcode
- * returns: Encoded 32-bit instruction
+ *
+ * Output: Encoded 32-bit instruction
  */
 uint32_t encode_i(int32_t imm, uint32_t rs1,
-				  uint32_t funct3, uint32_t rd, uint32_t opcode);
+		uint32_t funct3, uint32_t rd, uint32_t opcode);
 
 /**
  * Encode S-type (store) instruction
+ *
  * imm: 12-bit immediate value (split into two fields)
  * rs2: Source register 2 (5 bits)
  * rs1: Source register 1 (5 bits)
  * funct3: 3-bit function code
  * opcode: 7-bit opcode
- * returns: Encoded 32-bit instruction
+ *
+ * Output: Encoded 32-bit instruction
  */
 uint32_t encode_s(int32_t imm, uint32_t rs2, uint32_t rs1,
-				  uint32_t funct3, uint32_t opcode);
+		uint32_t funct3, uint32_t opcode);
 
 /**
  * Encode B-type (branch) instruction
+ *
  * imm: 13-bit immediate value (word-aligned, split into multiple fields)
  * rs2: Source register 2 (5 bits)
  * rs1: Source register 1 (5 bits)
  * funct3: 3-bit function code
  * opcode: 7-bit opcode
- * returns: Encoded 32-bit instruction
+ *
+ * Output: Encoded 32-bit instruction
  */
 uint32_t encode_b(int32_t imm, uint32_t rs2, uint32_t rs1,
-				  uint32_t funct3, uint32_t opcode);
+		uint32_t funct3, uint32_t opcode);
 
 /**
  * Encode U-type (upper immediate) instruction
+ *
  * imm: 20-bit immediate value (aligned to 12-bit boundary)
  * rd: Destination register (5 bits)
  * opcode: 7-bit opcode
- * returns: Encoded 32-bit instruction
+ *
+ * Output: Encoded 32-bit instruction
  */
 uint32_t encode_u(int32_t imm, uint32_t rd, uint32_t opcode);
 
 /**
  * Encode J-type (jump) instruction
+ *
  * imm: 21-bit immediate value (word-aligned, split into multiple fields)
  * rd: Destination register (5 bits)
  * opcode: 7-bit opcode
- * returns: Encoded 32-bit instruction
+ *
+ * Output: Encoded 32-bit instruction
  */
 uint32_t encode_j(int32_t imm, uint32_t rd, uint32_t opcode);
 
 /**
- * Parse C-style escaped string literal.
- *
- * Supports:
- *   \n  newline
- *   \t  tab
- *   \r  carriage return
- *   \\  backslash
- *   \"  double quote
+ * Parse C-style escaped string literal
  *
  * src: Pointer to first char AFTER opening quote
  * out: Output buffer (NULL = count only)
- * returns: Number of bytes produced
+ *
+ * Output: Number of bytes produced
+ *
+ * Performs:
+ * Supports \n newline
+ * Supports \t tab
+ * Supports \r carriage return
+ * Supports \\ backslash
+ * Supports \" double quote
  */
 size_t parse_escaped_string(const char *src, uint8_t *out);
 
 /**
  * First assembly pass: label resolution and address calculation
+ *
  * f: Input assembly file stream
  * state: Assembler state to initialize and populate
- * 
+ *
  * Performs:
- * 1. Section tracking (.text, .data)
- * 2. Label address assignment (relative to section start)
- * 3. Size calculation for text and data sections
+ * Section tracking (.text, .data)
+ * Label address assignment (relative to section start)
+ * Size calculation for text and data sections
  */
 void first_pass(FILE *f, assembler_state_t *state);
 
 /**
  * Adjust label addresses after first pass
+ *
  * state: Assembler state with label table and section sizes
  * data_base: Base address for data section (typically end of text section)
- * 
+ *
  * Performs:
- * 1. Converts label addresses from section-relative to absolute
- * 2. Text labels get their relative address
- * 3. Data labels get data_base + their relative address
+ * Converts label addresses from section-relative to absolute
+ * Text labels get their relative address
+ * Data labels get data_base + their relative address
  */
 void adjust_labels(assembler_state_t *state, uint32_t data_base);
 
 /**
  * Second assembly pass: instruction encoding and output generation
+ *
  * in: Input assembly file stream (rewound after first pass)
  * out: Output binary file stream
  * state: Assembler state from first pass (with adjusted labels)
- * 
+ *
  * Performs:
- * 1. Instruction parsing and encoding
- * 2. Data directive processing (.ascii, .byte)
- * 3. Binary output to appropriate file positions
- * 4. Label reference resolution using adjusted addresses
+ * Instruction parsing and encoding
+ * Data directive processing (.ascii, .byte)
+ * Binary output to appropriate file positions
+ * Label reference resolution using adjusted addresses
  */
 void second_pass(FILE *in, FILE *out, const assembler_state_t *state);
 
 /**
  * Expand pseudoinstruction into base RISC-V instructions
+ *
  * op: Pseudoinstruction opcode (e.g., "li", "la", "mv", "nop")
  * a1: First argument (destination register for most pseudoinstructions)
  * a2: Second argument (source or immediate value)
  * state: Assembler state for label resolution
  * out_lines: Array to store expanded instructions (2 slots max)
  * current_pc: Current program counter for relative calculations
- * returns: Number of instructions generated (1 or 2)
- * 
- * Supported pseudoinstructions:
- *   li rd, imm      -> lui/addi or addi depending on immediate range
- *   la rd, label    -> auipc/addi for PC-relative addressing
- *   mv rd, rs       -> addi rd, rs, 0
- *   nop             -> addi x0, x0, 0
+ *
+ * Output: Number of instructions generated (1 or 2)
+ *
+ * Performs:
+ * Supports li rd, imm -> lui/addi or addi depending on immediate range
+ * Supports la rd, label -> auipc/addi for PC-relative addressing
+ * Supports mv rd, rs -> addi rd, rs, 0
+ * Supports nop -> addi x0, x0, 0
  */
 int expand_pseudoinstruction(const char *op, const char *a1, const char *a2,
-							 const assembler_state_t *state,
-							 char out_lines[2][MAX_LINE],
-							 uint32_t current_pc);
+		const assembler_state_t *state, char out_lines[2][MAX_LINE], uint32_t current_pc);
 
-#endif /* ASSEMBLER_H */
+#endif

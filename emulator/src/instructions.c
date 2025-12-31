@@ -1,4 +1,4 @@
-// instructions.c
+/* instructions.c */
 #include "cpu.h"
 #include "instructions.h"
 #include <stdint.h>

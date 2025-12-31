@@ -1,12 +1,11 @@
+/* expand_pseudoinstructions.c */
 #include "assembler.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 int expand_pseudoinstruction(const char *op, const char *a1, const char *a2,
-							 const assembler_state_t *state,
-							 char out_lines[2][MAX_LINE],
-							 uint32_t current_pc) {
+		const assembler_state_t *state, char out_lines[2][MAX_LINE], uint32_t current_pc) {
 	if (!strcmp(op, "nop")) {
 		snprintf(out_lines[0], MAX_LINE, "addi x0, x0, 0");
 		return 1;

@@ -1,11 +1,10 @@
+/* second_pass.c */
 #include "assembler.h"
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 
-static uint32_t encode_instruction(const assembler_state_t *state, uint32_t current_pc,
-								   const char *op, const char *a1,
-								   const char *a2, const char *a3) {
+static uint32_t encode_instruction(const assembler_state_t *state, uint32_t current_pc, const char *op, const char *a1, const char *a2, const char *a3) {
 	if (!strcmp(op, "add")) {
 		return encode_r(0x00, reg_num(a3), reg_num(a2), 0x0, reg_num(a1), 0x33);
 	} else if (!strcmp(op, "sub")) {
@@ -223,8 +222,7 @@ static int is_pseudoinstruction(const char *op) {
 		   !strcmp(op, "mv") || !strcmp(op, "nop");
 }
 
-static void process_instruction_second_pass(FILE *out, const assembler_state_t *state,
-											uint32_t *pc, const char *s) {
+static void process_instruction_second_pass(FILE *out, const assembler_state_t *state, uint32_t *pc, const char *s) {
 	char op[16] = "", a1[32] = "", a2[32] = "", a3[32] = "";
 	parse_instruction_args(s, op, a1, a2, a3);
 

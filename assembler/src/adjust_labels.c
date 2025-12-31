@@ -1,3 +1,4 @@
+/* adjust_labels.c */
 #include "assembler.h"
 
 void adjust_labels(assembler_state_t *state, uint32_t data_base) {

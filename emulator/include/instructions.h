@@ -1,10 +1,19 @@
-// instructions.h
+/* instructions.h */
 #ifndef INSTRUCTIONS_H
 #define INSTRUCTIONS_H
 
 #include <stdint.h>
 
-/** Instruction format types */
+/*
+ * Instruction format types
+ *
+ * INSTR_R_TYPE: Register-type instructions
+ * INSTR_I_TYPE: Immediate-type instructions
+ * INSTR_S_TYPE: Store-type instructions
+ * INSTR_B_TYPE: Branch-type instructions
+ * INSTR_U_TYPE: Upper-immediate-type instructions
+ * INSTR_J_TYPE: Jump-type instructions
+ */
 typedef enum {
 	INSTR_R_TYPE,
 	INSTR_I_TYPE,
@@ -14,15 +23,24 @@ typedef enum {
 	INSTR_J_TYPE
 } instr_format_t;
 
-/**
+/*
  * Decoded instruction structure
+ *
+ * format: Instruction format type
+ * raw: Raw 32-bit instruction word
+ * imm: Sign-extended immediate value
+ * opcode: 7-bit opcode field
+ * rd: Destination register field
+ * rs1: Source register 1 field
+ * rs2: Source register 2 field
+ * funct3: 3-bit function field
+ * funct7: 7-bit function field
  */
 typedef struct instruction_t {
 	instr_format_t format;
-	uint32_t raw;      /** Raw instruction */
-	int32_t imm;       /** Sign-extended immediate */
+	uint32_t raw;
+	int32_t imm; 
 
-	/** Extracted fields */
 	uint8_t opcode;
 	uint8_t rd;
 	uint8_t rs1;
@@ -33,13 +51,12 @@ typedef struct instruction_t {
 
 /**
  * Sign extend a value to 32 bits
+ *
  * value: Value to sign extend
  * bits: Original bit width
- * returns: 32-bit sign-extended value
+ *
+ * Output: 32-bit sign-extended value
  */
 int32_t sign_extend(uint32_t value, int bits);
 
-/* cpu_decode is declared in cpu.h but defined in instructions.c.
-   The prototype in cpu.h is sufficient for external users. */
-
-#endif /* INSTRUCTIONS_H */
+#endif
