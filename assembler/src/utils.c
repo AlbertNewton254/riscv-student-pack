@@ -14,44 +14,56 @@ char *trim(char *s) {
 int reg_num(const char *r) {
 	if (r == NULL || r[0] == '\0') return -1;
 
+	/* Parse only the leading alphanumeric characters of the input. This
+	 * allows inputs like "t0," or "a1)" to be accepted by stopping at the
+	 * first non-alphanumeric character. */
+	size_t len = 0;
+	while (r[len] && isalnum((unsigned char)r[len])) len++;
+	if (len == 0) return -1;
+
+	char name[16];
+	if (len >= sizeof(name)) len = sizeof(name) - 1;
+	memcpy(name, r, len);
+	name[len] = '\0';
+
 	/* Try ABI names first */
-	if (strcmp(r, "zero") == 0) return 0;
-	if (strcmp(r, "ra") == 0) return 1;
-	if (strcmp(r, "sp") == 0) return 2;
-	if (strcmp(r, "gp") == 0) return 3;
-	if (strcmp(r, "tp") == 0) return 4;
-	if (strcmp(r, "t0") == 0) return 5;
-	if (strcmp(r, "t1") == 0) return 6;
-	if (strcmp(r, "t2") == 0) return 7;
-	if (strcmp(r, "s0") == 0 || strcmp(r, "fp") == 0) return 8;
-	if (strcmp(r, "s1") == 0) return 9;
-	if (strcmp(r, "a0") == 0) return 10;
-	if (strcmp(r, "a1") == 0) return 11;
-	if (strcmp(r, "a2") == 0) return 12;
-	if (strcmp(r, "a3") == 0) return 13;
-	if (strcmp(r, "a4") == 0) return 14;
-	if (strcmp(r, "a5") == 0) return 15;
-	if (strcmp(r, "a6") == 0) return 16;
-	if (strcmp(r, "a7") == 0) return 17;
-	if (strcmp(r, "s2") == 0) return 18;
-	if (strcmp(r, "s3") == 0) return 19;
-	if (strcmp(r, "s4") == 0) return 20;
-	if (strcmp(r, "s5") == 0) return 21;
-	if (strcmp(r, "s6") == 0) return 22;
-	if (strcmp(r, "s7") == 0) return 23;
-	if (strcmp(r, "s8") == 0) return 24;
-	if (strcmp(r, "s9") == 0) return 25;
-	if (strcmp(r, "s10") == 0) return 26;
-	if (strcmp(r, "s11") == 0) return 27;
-	if (strcmp(r, "t3") == 0) return 28;
-	if (strcmp(r, "t4") == 0) return 29;
-	if (strcmp(r, "t5") == 0) return 30;
-	if (strcmp(r, "t6") == 0) return 31;
+	if (strcmp(name, "zero") == 0) return 0;
+	if (strcmp(name, "ra") == 0) return 1;
+	if (strcmp(name, "sp") == 0) return 2;
+	if (strcmp(name, "gp") == 0) return 3;
+	if (strcmp(name, "tp") == 0) return 4;
+	if (strcmp(name, "t0") == 0) return 5;
+	if (strcmp(name, "t1") == 0) return 6;
+	if (strcmp(name, "t2") == 0) return 7;
+	if (strcmp(name, "s0") == 0 || strcmp(name, "fp") == 0) return 8;
+	if (strcmp(name, "s1") == 0) return 9;
+	if (strcmp(name, "a0") == 0) return 10;
+	if (strcmp(name, "a1") == 0) return 11;
+	if (strcmp(name, "a2") == 0) return 12;
+	if (strcmp(name, "a3") == 0) return 13;
+	if (strcmp(name, "a4") == 0) return 14;
+	if (strcmp(name, "a5") == 0) return 15;
+	if (strcmp(name, "a6") == 0) return 16;
+	if (strcmp(name, "a7") == 0) return 17;
+	if (strcmp(name, "s2") == 0) return 18;
+	if (strcmp(name, "s3") == 0) return 19;
+	if (strcmp(name, "s4") == 0) return 20;
+	if (strcmp(name, "s5") == 0) return 21;
+	if (strcmp(name, "s6") == 0) return 22;
+	if (strcmp(name, "s7") == 0) return 23;
+	if (strcmp(name, "s8") == 0) return 24;
+	if (strcmp(name, "s9") == 0) return 25;
+	if (strcmp(name, "s10") == 0) return 26;
+	if (strcmp(name, "s11") == 0) return 27;
+	if (strcmp(name, "t3") == 0) return 28;
+	if (strcmp(name, "t4") == 0) return 29;
+	if (strcmp(name, "t5") == 0) return 30;
+	if (strcmp(name, "t6") == 0) return 31;
 
 	/* Fall back to xN format */
-	if (r[0] != 'x') return -1;
+	if (name[0] != 'x') return -1;
 	char *end;
-	long n = strtol(r + 1, &end, 10);
+	long n = strtol(name + 1, &end, 10);
 	if (*end != '\0' || n < 0 || n > 31) return -1;
 	return (int)n;
 }
