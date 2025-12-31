@@ -97,13 +97,15 @@ int main(int argc, char *argv[]) {
 
 	int step_count = 0;
 	const int max_steps = 1000000;
+	int exit_code = 0;
 
 	while (cpu->running && step_count < max_steps) {
 		cpu_status_t status = cpu_step(cpu, mem);
 		step_count++;
 
 		if (status == CPU_SYSCALL_EXIT) {
-			printf("Program exited with status: %d\n", cpu->x[10]);
+			exit_code = (int)cpu->x[10];
+			printf("Program exited with status: %d\n", exit_code);
 			break;
 		}
 		else if (status != CPU_OK) {
@@ -125,5 +127,5 @@ int main(int argc, char *argv[]) {
 	cpu_destroy(cpu);
 	memory_destroy(mem);
 
-	return 0;
+	return (exit_code & 0xFF);
 }
