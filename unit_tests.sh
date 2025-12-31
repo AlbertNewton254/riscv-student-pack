@@ -11,9 +11,9 @@ echo -e "${YELLOW}=== RISC-V Assembler & Emulator Unit Tests ===${NC}\n"
 # Function to print colored status
 print_status() {
     if [ $1 -eq 0 ]; then
-        echo -e "${GREEN}✓ $2${NC}"
+        echo -e "${GREEN}OK $2${NC}"
     else
-        echo -e "${RED}✗ $2${NC}"
+        echo -e "${RED}FAIL $2${NC}"
     fi
 }
 
@@ -83,10 +83,10 @@ EOF
 EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 30 ]; then
-    echo -e "${GREEN}✓ Simple arithmetic test passed (exit code: $EXIT_CODE)${NC}"
+    echo -e "${GREEN}OK Simple arithmetic test passed (exit code: $EXIT_CODE)${NC}"
     SIMPLE_TEST=0
 else
-    echo -e "${RED}✗ Simple test failed: exit code $EXIT_CODE (expected 30)${NC}"
+    echo -e "${RED}FAIL Simple test failed: exit code $EXIT_CODE (expected 30)${NC}"
     SIMPLE_TEST=1
 fi
 rm -f test_simple.s test_simple.bin
@@ -111,10 +111,10 @@ EOF
 EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 30 ]; then
-    echo -e "${GREEN}✓ Pseudoinstruction test passed (exit code: $EXIT_CODE)${NC}"
+    echo -e "${GREEN}OK Pseudoinstruction test passed (exit code: $EXIT_CODE)${NC}"
     PSEUDO_TEST=0
 else
-    echo -e "${RED}✗ Pseudoinstruction test failed: exit code $EXIT_CODE (expected 30)${NC}"
+    echo -e "${RED}FAIL Pseudoinstruction test failed: exit code $EXIT_CODE (expected 30)${NC}"
     PSEUDO_TEST=1
 fi
 rm -f test_pseudo.s test_pseudo.bin
@@ -136,10 +136,10 @@ EOF
 EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 42 ]; then
-    echo -e "${GREEN}✓ Memory test passed (exit code: $EXIT_CODE)${NC}"
+    echo -e "${GREEN}OK Memory test passed (exit code: $EXIT_CODE)${NC}"
     MEM_TEST=0
 else
-    echo -e "${RED}✗ Memory test failed: exit code $EXIT_CODE (expected 42)${NC}"
+    echo -e "${RED}FAIL Memory test failed: exit code $EXIT_CODE (expected 42)${NC}"
     MEM_TEST=1
 fi
 rm -f test_mem.s test_mem.bin
@@ -154,10 +154,10 @@ _start:
     addi t0, x0, 999
     lui t1, 0x10         # 0x10 << 12 = 0x10000
     sw t0, 0(t1)
-    
+
     # Load it back
     lw a0, 0(t1)
-    
+
     # Exit with loaded value
     addi a7, x0, 93
     ecall
@@ -170,10 +170,10 @@ echo "Running emulator (showing output)..."
 EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 999 ]; then
-    echo -e "${GREEN}✓ Complex memory test passed (exit code: $EXIT_CODE)${NC}"
+    echo -e "${GREEN}OK Complex memory test passed (exit code: $EXIT_CODE)${NC}"
     MEM2_TEST=0
 else
-    echo -e "${RED}✗ Complex memory test failed: exit code $EXIT_CODE (expected 999)${NC}"
+    echo -e "${RED}FAIL Complex memory test failed: exit code $EXIT_CODE (expected 999)${NC}"
     MEM2_TEST=1
 fi
 rm -f test_mem2.s test_mem2.bin
