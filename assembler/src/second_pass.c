@@ -3,6 +3,16 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
+
+/* Add safe snprintf helper at the top */
+static void safe_snprintf(char *dest, size_t size, const char *format, ...) {
+	va_list args;
+	va_start(args, format);
+	vsnprintf(dest, size, format, args);
+	va_end(args);
+	dest[size - 1] = '\0'; /* Ensure null termination */
+}
 
 static uint32_t encode_instruction(const assembler_state_t *state, uint32_t current_pc, const char *op, const char *a1, const char *a2, const char *a3) {
 	if (!strcmp(op, "add")) {
@@ -287,7 +297,8 @@ static void process_instruction_second_pass(FILE *out, const assembler_state_t *
 			char suffix[MAX_LINE];
 			strcpy(suffix, close_paren + 1);
 
-			snprintf(processed_line, MAX_LINE, "%s%s,%s%s",
+			/* FIXED: Use safe_snprintf instead of snprintf */
+			safe_snprintf(processed_line, MAX_LINE, "%s%s,%s%s",
 					temp, offset, reg, suffix);
 		}
 	}

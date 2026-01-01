@@ -4,6 +4,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Helper function for safe string copying */
+static void safe_strncpy(char *dest, const char *src, size_t n) {
+	if (n == 0) return;
+	size_t i;
+	for (i = 0; i < n - 1 && src[i] != '\0'; i++) {
+		dest[i] = src[i];
+	}
+	dest[i] = '\0';
+}
+
 static int pseudoinstruction_size(const char *op, const char *a2) {
 	if (!strcmp(op, "nop") || !strcmp(op, "mv")) {
 		return 1;
@@ -37,7 +47,7 @@ static void parse_simple_args(const char *s, char *op, char *a1, char *a2) {
 
 	/* Make a working copy */
 	char temp[MAX_LINE];
-	strncpy(temp, s, MAX_LINE - 1);
+	safe_strncpy(temp, s, MAX_LINE);
 	temp[MAX_LINE - 1] = '\0';
 
 	/* Skip leading whitespace */
@@ -52,8 +62,7 @@ static void parse_simple_args(const char *s, char *op, char *a1, char *a2) {
 
 	size_t op_len = op_end - ptr;
 	if (op_len >= 16) op_len = 15;  /* Leave room for null terminator */
-	strncpy(op, ptr, op_len);
-	op[op_len] = '\0';
+	safe_strncpy(op, ptr, op_len + 1);
 
 	ptr = op_end;
 	while (*ptr && isspace(*ptr)) ptr++;
@@ -67,8 +76,7 @@ static void parse_simple_args(const char *s, char *op, char *a1, char *a2) {
 		/* Single argument */
 		size_t len = strlen(ptr);
 		if (len >= 31) len = 30;  /* Leave room for null terminator */
-		strncpy(a1, ptr, len);
-		a1[len] = '\0';
+		safe_strncpy(a1, ptr, len + 1);
 		trim(a1);
 	} else {
 		/* Two arguments separated by comma */
@@ -76,8 +84,7 @@ static void parse_simple_args(const char *s, char *op, char *a1, char *a2) {
 
 		size_t len1 = strlen(ptr);
 		if (len1 >= 31) len1 = 30;
-		strncpy(a1, ptr, len1);
-		a1[len1] = '\0';
+		safe_strncpy(a1, ptr, len1 + 1);
 		trim(a1);
 
 		char *arg2 = comma + 1;
@@ -86,8 +93,7 @@ static void parse_simple_args(const char *s, char *op, char *a1, char *a2) {
 		if (*arg2) {
 			size_t len2 = strlen(arg2);
 			if (len2 >= 31) len2 = 30;
-			strncpy(a2, arg2, len2);
-			a2[len2] = '\0';
+			safe_strncpy(a2, arg2, len2 + 1);
 			trim(a2);
 		}
 	}
