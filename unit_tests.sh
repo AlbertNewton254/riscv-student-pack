@@ -150,8 +150,8 @@ cat > test_mem2.s << 'EOF'
 .text
 .globl _start
 _start:
-    # Store 999 to memory at address 0x10000
-    addi t0, x0, 999
+    # Store 200 to memory at address 0x10000
+    addi t0, x0, 200
     lui t1, 0x10         # 0x10 << 12 = 0x10000
     sw t0, 0(t1)
 
@@ -169,7 +169,7 @@ echo "Running emulator (showing output)..."
 ./emulator/riscv_emulator test_mem2.bin 0x0
 EXIT_CODE=$?
 
-if [ $EXIT_CODE -eq 999 ]; then
+if [ $EXIT_CODE -eq 200 ]; then
     echo -e "${GREEN}OK Complex memory test passed (exit code: $EXIT_CODE)${NC}"
     MEM2_TEST=0
 else

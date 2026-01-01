@@ -44,21 +44,21 @@ static uint32_t encode_instruction(const assembler_state_t *state, uint32_t curr
 	} else if (!strcmp(op, "srai")) {
 		return encode_r(0x20, parse_imm(state, a3) & 0x1F, reg_num(a2), 0x5, reg_num(a1), 0x13);
 	} else if (!strcmp(op, "lb")) {
-		return encode_i(parse_imm(state, a3), reg_num(a2), 0x0, reg_num(a1), 0x03);
+		return encode_i(parse_imm(state, a2), reg_num(a3), 0x0, reg_num(a1), 0x03);
 	} else if (!strcmp(op, "lh")) {
-		return encode_i(parse_imm(state, a3), reg_num(a2), 0x1, reg_num(a1), 0x03);
+		return encode_i(parse_imm(state, a2), reg_num(a3), 0x1, reg_num(a1), 0x03);
 	} else if (!strcmp(op, "lw")) {
-		return encode_i(parse_imm(state, a3), reg_num(a2), 0x2, reg_num(a1), 0x03);
+		return encode_i(parse_imm(state, a2), reg_num(a3), 0x2, reg_num(a1), 0x03);
 	} else if (!strcmp(op, "lbu")) {
-		return encode_i(parse_imm(state, a3), reg_num(a2), 0x4, reg_num(a1), 0x03);
+		return encode_i(parse_imm(state, a2), reg_num(a3), 0x4, reg_num(a1), 0x03);
 	} else if (!strcmp(op, "lhu")) {
-		return encode_i(parse_imm(state, a3), reg_num(a2), 0x5, reg_num(a1), 0x03);
+		return encode_i(parse_imm(state, a2), reg_num(a3), 0x5, reg_num(a1), 0x03);
 	} else if (!strcmp(op, "sb")) {
-		return encode_s(parse_imm(state, a3), reg_num(a1), reg_num(a2), 0x0, 0x23);
+		return encode_s(parse_imm(state, a2), reg_num(a1), reg_num(a3), 0x0, 0x23);
 	} else if (!strcmp(op, "sh")) {
-		return encode_s(parse_imm(state, a3), reg_num(a1), reg_num(a2), 0x1, 0x23);
+		return encode_s(parse_imm(state, a2), reg_num(a1), reg_num(a3), 0x1, 0x23);
 	} else if (!strcmp(op, "sw")) {
-		return encode_s(parse_imm(state, a3), reg_num(a1), reg_num(a2), 0x2, 0x23);
+		return encode_s(parse_imm(state, a2), reg_num(a1), reg_num(a3), 0x2, 0x23);
 	} else if (!strcmp(op, "beq")) {
 		int32_t target = parse_imm(state, a3);
 		int32_t offset = target - current_pc;
@@ -222,14 +222,87 @@ static int is_pseudoinstruction(const char *op) {
 		   !strcmp(op, "mv") || !strcmp(op, "nop");
 }
 
+static void debug_parsing(const char *original_line, const char *op, const char *a1, const char *a2, const char *a3) {
+	fprintf(stderr, "DEBUG PARSING:\n");
+	fprintf(stderr, "\tOriginal line: '%s'\n", original_line);
+	fprintf(stderr, "\tParsed:\n");
+	fprintf(stderr, "\t\top:  '%s'\n", op);
+	fprintf(stderr, "\t\ta1:  '%s'\n", a1);
+	fprintf(stderr, "\t\ta2:  '%s'\n", a2);
+	fprintf(stderr, "\t\ta3:  '%s'\n", a3);
+}
+
+
 static void process_instruction_second_pass(FILE *out, const assembler_state_t *state, uint32_t *pc, const char *s) {
+	// Guardar a linha original para debug
+	char original_line[MAX_LINE];
+	strncpy(original_line, s, MAX_LINE - 1);
+	original_line[MAX_LINE - 1] = '\0';
+
+	// Primeiro, remover comentários
+	char line_copy[MAX_LINE];
+	strncpy(line_copy, s, MAX_LINE - 1);
+	line_copy[MAX_LINE - 1] = '\0';
+
+	char *comment = strchr(line_copy, '#');
+	if (comment) {
+		*comment = '\0';
+	}
+
+	char *line_ptr = trim(line_copy);
+
+	// Processar sintaxe de memória: converter offset(reg) para offset, reg
+	char processed_line[MAX_LINE];
+	strcpy(processed_line, line_ptr);
+
+	// Encontrar parênteses para sintaxe de memória (ex: 0(t1), 4(sp))
+	char *open_paren = strchr(processed_line, '(');
+	if (open_paren) {
+		char *close_paren = strchr(open_paren, ')');
+		if (close_paren) {
+			// Extrair o offset (números antes do '(')
+			char *offset_start = open_paren;
+			while (offset_start > processed_line && !isspace(*(offset_start-1)) && *(offset_start-1) != ',') {
+				offset_start--;
+			}
+
+			// Copiar offset
+			char offset[32] = "";
+			strncpy(offset, offset_start, open_paren - offset_start);
+			offset[open_paren - offset_start] = '\0';
+
+			// Extrair registrador entre parênteses
+			char reg[32] = "";
+			strncpy(reg, open_paren + 1, close_paren - (open_paren + 1));
+			reg[close_paren - (open_paren + 1)] = '\0';
+
+			// Substituir a parte "offset(reg)" por "offset,reg" na string
+			char temp[MAX_LINE];
+
+			// Parte antes do offset
+			strncpy(temp, processed_line, offset_start - processed_line);
+			temp[offset_start - processed_line] = '\0';
+
+			// Adicionar offset e registrador separados por vírgula
+			char suffix[MAX_LINE];
+			strcpy(suffix, close_paren + 1);
+
+			snprintf(processed_line, MAX_LINE, "%s%s,%s%s",
+					temp, offset, reg, suffix);
+		}
+	}
+
 	char op[16] = "", a1[32] = "", a2[32] = "", a3[32] = "";
-	parse_instruction_args(s, op, a1, a2, a3);
+
+	fprintf(stderr, "\tProcessed line: '%s'\n", processed_line);
+
+	parse_instruction_args(processed_line, op, a1, a2, a3);
 
 	trim(a1);
 	trim(a2);
 	trim(a3);
 
+	// Remover vírgulas finais se existirem
 	if (a1[0] && a1[strlen(a1)-1] == ',') {
 		a1[strlen(a1)-1] = '\0';
 		trim(a1);
@@ -239,17 +312,42 @@ static void process_instruction_second_pass(FILE *out, const assembler_state_t *
 		trim(a2);
 	}
 
+	// Debug do parsing
+	debug_parsing(original_line, op, a1, a2, a3);
+
 	if (is_pseudoinstruction(op)) {
 		char expanded[2][MAX_LINE];
 		int count = expand_pseudoinstruction(op, a1, a2, state, expanded, *pc);
 
+		fprintf(stderr, "\tPseudo-instruction expanded to %d instruction(s):\n", count);
+		for (int i = 0; i < count; i++) {
+			fprintf(stderr, "\t\t[%d] %s\n", i, expanded[i]);
+		}
+
 		for (int i = 0; i < count; i++) {
 			char exp_op[16], exp_a1[32], exp_a2[32], exp_a3[32];
-			parse_instruction_args(expanded[i], exp_op, exp_a1, exp_a2, exp_a3);
+
+			// Processar cada instrução expandida
+			char exp_line[MAX_LINE];
+			strcpy(exp_line, expanded[i]);
+
+			// Remover comentários das instruções expandidas também
+			comment = strchr(exp_line, '#');
+			if (comment) {
+				*comment = '\0';
+			}
+
+			parse_instruction_args(exp_line, exp_op, exp_a1, exp_a2, exp_a3);
 
 			trim(exp_a1);
 			trim(exp_a2);
 			trim(exp_a3);
+
+			fprintf(stderr, "\tParsing expanded instruction %d:\n", i);
+			fprintf(stderr, "\t\top:  '%s'\n", exp_op);
+			fprintf(stderr, "\t\ta1:  '%s'\n", exp_a1);
+			fprintf(stderr, "\t\ta2:  '%s'\n", exp_a2);
+			fprintf(stderr, "\t\ta3:  '%s'\n", exp_a3);
 
 			uint32_t instr = encode_instruction(state, *pc, exp_op, exp_a1, exp_a2, exp_a3);
 			fwrite(&instr, 4, 1, out);

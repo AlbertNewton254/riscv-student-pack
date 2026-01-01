@@ -127,5 +127,5 @@ int main(int argc, char *argv[]) {
 	cpu_destroy(cpu);
 	memory_destroy(mem);
 
-	return (exit_code & 0xFF);
+	return exit_code;
 }
