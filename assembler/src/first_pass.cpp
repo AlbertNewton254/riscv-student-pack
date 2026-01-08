@@ -162,7 +162,19 @@ void Assembler::process_label(char *s) {
 void Assembler::process_directive(char *s) {
 	s = trim(s);
 
-	if (!strncmp(s, ".ascii", 6)) {
+	if (!strncmp(s, ".asciiz", 7)) {
+		char *q = strchr(s, '"');
+		if (!q) {
+			fprintf(stderr, "Malformed .asciiz\n");
+			exit(1);
+		}
+		uint32_t size = parse_escaped_string(q + 1, NULL) + 1;
+		get_current_section().offset += size;
+		if (current_section_name == ".data") {
+			pc_data += size;
+		}
+
+	} else if (!strncmp(s, ".ascii", 6)) {
 		char *q = strchr(s, '"');
 		if (!q) {
 			fprintf(stderr, "Malformed .ascii\n");
@@ -171,18 +183,6 @@ void Assembler::process_directive(char *s) {
 		uint32_t size = parse_escaped_string(q + 1, NULL);
 		get_current_section().offset += size;
 		/* Keep pc_data for backwards compatibility */
-		if (current_section_name == ".data") {
-			pc_data += size;
-		}
-
-	} else if (!strncmp(s, ".asciiz", 7)) {
-		char *q = strchr(s, '"');
-		if (!q) {
-			fprintf(stderr, "Malformed .asciiz\n");
-			exit(1);
-		}
-		uint32_t size = parse_escaped_string(q + 1, NULL) + 1;
-		get_current_section().offset += size;
 		if (current_section_name == ".data") {
 			pc_data += size;
 		}
@@ -332,6 +332,15 @@ void Assembler::first_pass(FILE *f) {
 		}
 	}
 
-	text_size = pc_text;
-	data_size = pc_data;
+	/* Calculate text_size and data_size from all sections */
+	text_size = 0;
+	data_size = 0;
+	for (const auto& section_pair : sections) {
+		const SectionInfo& sec = section_pair.second;
+		if (sec.type == SEC_TEXT) {
+			text_size += sec.offset;
+		} else if (sec.type == SEC_DATA || sec.type == SEC_RODATA || sec.type == SEC_BSS) {
+			data_size += sec.offset;
+		}
+	}
 }
