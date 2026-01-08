@@ -10,16 +10,13 @@ SRC_DIR = src
 SRC_CPP = $(SRC_DIR)/adjust_labels.cpp $(SRC_DIR)/constructor.cpp $(SRC_DIR)/encode.cpp $(SRC_DIR)/expand_pseudoinstruction.cpp \
         $(SRC_DIR)/first_pass.cpp $(SRC_DIR)/second_pass.cpp $(SRC_DIR)/utils.cpp
 SRC_MAIN = $(SRC_DIR)/main.cpp
-SRC_TEST = tests/test_assembler.cpp
 
 # Object files
 OBJ = $(SRC_CPP:.cpp=.o)
 OBJ_MAIN = $(SRC_MAIN:.cpp=.o)
-OBJ_TEST = $(SRC_TEST:.cpp=.o)
 
 # Executable names
 EXEC = riscv_assembler
-TEST_EXEC = test_assembler
 
 # Default target
 all: $(EXEC)
@@ -28,17 +25,9 @@ all: $(EXEC)
 $(EXEC): $(OBJ) $(OBJ_MAIN)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $^
 
-# Test executable
-$(TEST_EXEC): $(OBJ) $(OBJ_TEST)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $^
-
 # Compile .cpp files to .o files
 %.o: %.cpp include/assembler.hpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
-
-# Run tests
-test: $(TEST_EXEC)
-	./$(TEST_EXEC)
 
 # Run assembler with sample assembly file
 run: $(EXEC)
@@ -51,11 +40,11 @@ run: $(EXEC)
 
 # Clean everything (including executables)
 clean:
-	rm -f $(EXEC) $(TEST_EXEC) *.o $(SRC_DIR)/*.o tests/*.o output.bin
+	rm -f $(EXEC) *.o $(SRC_DIR)/*.o output.bin
 
 # Clean object files only (keep executables for fast rebuilds)
 clean-soft:
-	rm -f *.o $(SRC_DIR)/*.o tests/*.o output.bin
+	rm -f *.o $(SRC_DIR)/*.o output.bin
 
 # Format code (optional - requires clang-format)
 format:
@@ -92,7 +81,6 @@ $(SRC_DIR)/main.o: $(SRC_DIR)/main.cpp include/assembler.hpp
 help:
 	@echo "Available targets:"
 	@echo "  all       - Build the assembler (default)"
-	@echo "  test      - Build and run unit tests"
 	@echo "  run       - Run assembler with PROGRAM variable"
 	@echo "  clean     - Remove everything (including executables)"
 	@echo "  clean-soft - Remove object files only (keep executables for fast rebuilds)"
@@ -104,13 +92,10 @@ help:
 	@echo ""
 	@echo "Usage examples:"
 	@echo "  make                         # Build assembler"
-	@echo "  make test                    # Build and run tests"
 	@echo "  PROGRAM=test.s make run      # Assemble test.s to output.bin"
 	@echo "  make clean                   # Clean build files"
 	@echo ""
-	@echo "Individual compilation targets:"
-	@echo "  make adjust_labels.o         # Compile specific module"
-	@echo "  make encode.o                # Compile specific module"
-	@echo "  ... etc"
+	@echo "Tests moved to: ../tests/"
+	@echo "Run: cd ../tests && make test_assembler"
 
-.PHONY: all test run clean clean-soft format analyze debug release help
+.PHONY: all run clean clean-soft format analyze debug release help
