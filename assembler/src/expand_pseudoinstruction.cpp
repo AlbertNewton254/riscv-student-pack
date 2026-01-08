@@ -1,8 +1,8 @@
 /* expand_pseudoinstructions.c */
-#include "assembler.h"
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include "assembler.hpp"
+#include <cstring>
+#include <cstdlib>
+#include <cstdio>
 
 int expand_pseudoinstruction(const char *op, const char *a1, const char *a2,
 		const assembler_state_t *state, char out_lines[2][MAX_LINE], uint32_t current_pc) {

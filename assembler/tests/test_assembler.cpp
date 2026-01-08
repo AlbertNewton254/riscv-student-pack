@@ -1,8 +1,8 @@
 /* test_assembler.c */
-#include "../include/assembler.h"
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
+#include "../include/assembler.hpp"
+#include <cstdio>
+#include <cstring>
+#include <cassert>
 
 /* Test helper functions */
 static void test_trim(void) {
@@ -101,11 +101,12 @@ static void test_parse_imm(void) {
 	assert(parse_imm(NULL, "-0x10") == -0x10);
 
 	/* Test with labels (requires state with labels) */
-	assembler_state_t state = {0};
-	state.label_count = 1;
-	strcpy(state.labels[0].name, "my_label");
-	state.labels[0].addr = 0x1000;
-	state.labels[0].section = SEC_TEXT;
+	assembler_state_t state = {};
+	label_t test_label;
+	strcpy(test_label.name, "my_label");
+	test_label.addr = 0x1000;
+	test_label.section = SEC_TEXT;
+	state.labels.push_back(test_label);
 
 	/* This would normally fail in real usage as find_label would be called */
 	/* We'll test it with a stub or mock later */
@@ -142,11 +143,12 @@ static void test_parse_escaped_string(void) {
 static void test_pseudoinstruction_expansion(void) {
 	printf("Test 6: Pseudoinstruction expansion...\n");
 
-	assembler_state_t state = {0};
-	state.label_count = 1;
-	strcpy(state.labels[0].name, "data_label");
-	state.labels[0].addr = 0x2000;
-	state.labels[0].section = SEC_DATA;
+	assembler_state_t state = {};
+	label_t test_label;
+	strcpy(test_label.name, "data_label");
+	test_label.addr = 0x2000;
+	test_label.section = SEC_DATA;
+	state.labels.push_back(test_label);
 
 	char expanded[2][MAX_LINE];
 	uint32_t current_pc = 0x1000;
@@ -184,23 +186,28 @@ static void test_pseudoinstruction_expansion(void) {
 static void test_adjust_labels(void) {
 	printf("Test 7: adjust_labels() function...\n");
 
-	assembler_state_t state = {0};
-	state.label_count = 3;
+	assembler_state_t state = {};
 
 	/* Text section label */
-	strcpy(state.labels[0].name, "text_label");
-	state.labels[0].addr = 0x100; /* Relative to text start */
-	state.labels[0].section = SEC_TEXT;
+	label_t text_label;
+	strcpy(text_label.name, "text_label");
+	text_label.addr = 0x100; /* Relative to text start */
+	text_label.section = SEC_TEXT;
+	state.labels.push_back(text_label);
 
 	/* Data section label */
-	strcpy(state.labels[1].name, "data_label");
-	state.labels[1].addr = 0x20; /* Relative to data start */
-	state.labels[1].section = SEC_DATA;
+	label_t data_label;
+	strcpy(data_label.name, "data_label");
+	data_label.addr = 0x20; /* Relative to data start */
+	data_label.section = SEC_DATA;
+	state.labels.push_back(data_label);
 
 	/* Another text label */
-	strcpy(state.labels[2].name, "another_text");
-	state.labels[2].addr = 0x200;
-	state.labels[2].section = SEC_TEXT;
+	label_t another_text;
+	strcpy(another_text.name, "another_text");
+	another_text.addr = 0x200;
+	another_text.section = SEC_TEXT;
+	state.labels.push_back(another_text);
 
 	state.text_size = 0x1000;
 	state.data_size = 0x200;
@@ -241,7 +248,7 @@ static void test_first_pass_basic(void) {
 	first_pass(temp, &state);
 
 	assert(state.current_section == SEC_DATA);
-	assert(state.label_count >= 3); /* start, loop, msg, count */
+	assert(state.labels.size() >= 3); /* start, loop, msg, count */
 	assert(state.text_size > 0);
 	assert(state.data_size > 0);
 
@@ -333,7 +340,7 @@ static void test_section_switching(void) {
 	assert(state.data_size == 8); /* 2 words = 8 bytes */
 
 	rewind(temp);
-	state.label_count = 0;
+	state.labels.clear();
 	state.pc_text = 0;
 	state.pc_data = 0;
 	state.current_section = SEC_TEXT;

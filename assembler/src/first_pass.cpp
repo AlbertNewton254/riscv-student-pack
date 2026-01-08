@@ -1,8 +1,8 @@
 /* first_pass.c */
-#include "assembler.h"
-#include <ctype.h>
-#include <stdlib.h>
-#include <string.h>
+#include "assembler.hpp"
+#include <cctype>
+#include <cstdlib>
+#include <cstring>
 
 /* Helper function for safe string copying */
 static void safe_strncpy(char *dest, const char *src, size_t n) {
@@ -133,28 +133,24 @@ static void process_label(assembler_state_t *state, char *s) {
 
 	char *trimmed = trim(label_name);
 
-	for (int i = 0; i < state->label_count; i++) {
+	for (size_t i = 0; i < state->labels.size(); i++) {
 		if (!strcmp(state->labels[i].name, trimmed)) {
 			fprintf(stderr, "Duplicate label: %s\n", trimmed);
 			exit(1);
 		}
 	}
 
-	if (state->label_count >= MAX_LABELS) {
-		fprintf(stderr, "Too many labels\n");
-		exit(1);
-	}
-
-	strcpy(state->labels[state->label_count].name, trimmed);
-	state->labels[state->label_count].section = state->current_section;
+	label_t new_label;
+	strcpy(new_label.name, trimmed);
+	new_label.section = state->current_section;
 
 	if (state->current_section == SEC_TEXT) {
-		state->labels[state->label_count].addr = state->pc_text;
+		new_label.addr = state->pc_text;
 	} else {
-		state->labels[state->label_count].addr = state->pc_data;
+		new_label.addr = state->pc_data;
 	}
 
-	state->label_count++;
+	state->labels.push_back(new_label);
 }
 
 static void process_directive(assembler_state_t *state, char *s) {
@@ -222,7 +218,7 @@ static void process_directive(assembler_state_t *state, char *s) {
 void first_pass(FILE *f, assembler_state_t *state) {
 	char line[MAX_LINE];
 
-	state->label_count = 0;
+	state->labels.clear();
 	state->pc_text = 0;
 	state->pc_data = 0;
 	state->current_section = SEC_TEXT;

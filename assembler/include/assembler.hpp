@@ -1,15 +1,32 @@
 /* assembler.h */
-#ifndef ASSEMBLER_H
-#define ASSEMBLER_H
+#ifndef ASSEMBLER_HPP
+#define ASSEMBLER_HPP
 
-#include <stdint.h>
-#include <stdio.h>
+#include <cstdint>
+#include <cstdio>
+#include <memory>
+#include <vector>
+#include <string>
 
 /* Maximum label table size */
 #define MAX_LABELS 256
 
 /* Maximum line length for assembly source */
 #define MAX_LINE 512
+
+/*
+ * Custom deleter for FILE* to use with smart pointers
+ */
+struct FileDeleter {
+	void operator()(FILE* f) const {
+		if (f) {
+			fclose(f);
+		}
+	}
+};
+
+/* Type alias for unique_ptr with FILE* */
+using FilePtr = std::unique_ptr<FILE, FileDeleter>;
 
 /*
  * Assembly section types
@@ -38,8 +55,7 @@ typedef struct {
 /*
  * Assembler global state structure
  *
- * labels: Table of label definitions
- * label_count: Number of labels currently defined
+ * labels: Dynamic vector of label definitions
  * pc_text: Program counter for text section
  * pc_data: Program counter for data section
  * current_section: Active section during parsing
@@ -47,8 +63,7 @@ typedef struct {
  * data_size: Final size of data section (calculated after first pass)
  */
 typedef struct {
-	label_t labels[MAX_LABELS];
-	int label_count;
+	std::vector<label_t> labels;
 	uint32_t pc_text;
 	uint32_t pc_data;
 	section_t current_section;

@@ -1,8 +1,8 @@
 /* utils.c */
-#include "assembler.h"
-#include <ctype.h>
-#include <stdlib.h>
-#include <string.h>
+#include "assembler.hpp"
+#include <cctype>
+#include <cstdlib>
+#include <cstring>
 
 char *trim(char *s) {
 	while (isspace(*s)) s++;
@@ -69,7 +69,7 @@ int reg_num(const char *r) {
 }
 
 uint32_t find_label(const assembler_state_t *state, const char *name) {
-	for (int i = 0; i < state->label_count; i++) {
+	for (size_t i = 0; i < state->labels.size(); i++) {
 		if (!strcmp(state->labels[i].name, name))
 			return state->labels[i].addr;
 	}

@@ -1,21 +1,21 @@
 # Makefile for RISC-V Assembler
 
 # Compiler and flags
-CC = gcc
-CFLAGS = -Wall -Wextra -Werror -std=c99 -O2 -g
+CXX = g++
+CXXFLAGS = -Wall -Wextra -Werror -std=c++17 -O2 -g
 INCLUDES = -I./include
 
 # Source files (relative to src directory)
 SRC_DIR = src
-SRC_C = $(SRC_DIR)/adjust_labels.c $(SRC_DIR)/encode.c $(SRC_DIR)/expand_pseudoinstruction.c \
-        $(SRC_DIR)/first_pass.c $(SRC_DIR)/second_pass.c $(SRC_DIR)/utils.c
-SRC_MAIN = $(SRC_DIR)/main.c
-SRC_TEST = tests/test_assembler.c
+SRC_CPP = $(SRC_DIR)/adjust_labels.cpp $(SRC_DIR)/encode.cpp $(SRC_DIR)/expand_pseudoinstruction.cpp \
+        $(SRC_DIR)/first_pass.cpp $(SRC_DIR)/second_pass.cpp $(SRC_DIR)/utils.cpp
+SRC_MAIN = $(SRC_DIR)/main.cpp
+SRC_TEST = tests/test_assembler.cpp
 
 # Object files
-OBJ = $(SRC_C:.c=.o)
-OBJ_MAIN = $(SRC_MAIN:.c=.o)
-OBJ_TEST = $(SRC_TEST:.c=.o)
+OBJ = $(SRC_CPP:.cpp=.o)
+OBJ_MAIN = $(SRC_MAIN:.cpp=.o)
+OBJ_TEST = $(SRC_TEST:.cpp=.o)
 
 # Executable names
 EXEC = riscv_assembler
@@ -26,23 +26,15 @@ all: $(EXEC)
 
 # Main assembler executable
 $(EXEC): $(OBJ) $(OBJ_MAIN)
-	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $^
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $^
 
 # Test executable
 $(TEST_EXEC): $(OBJ) $(OBJ_TEST)
-	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $^
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $^
 
-# Compile .c files to .o files
-%.o: %.c include/assembler.h
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
-
-# Specific dependencies for main
-$(SRC_DIR)/main.o: $(SRC_DIR)/main.c include/assembler.h
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
-
-# Specific dependencies for test file
-tests/test_assembler.o: tests/test_assembler.c include/assembler.h
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+# Compile .cpp files to .o files
+%.o: %.cpp include/assembler.hpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 # Run tests
 test: $(TEST_EXEC)
@@ -67,7 +59,7 @@ clean-soft:
 
 # Format code (optional - requires clang-format)
 format:
-	find . -name "*.c" -o -name "*.h" | xargs clang-format -i
+	find . -name "*.cpp" -o -name "*.hpp" | xargs clang-format -i
 
 # Static analysis (optional - requires cppcheck)
 analyze:
@@ -82,26 +74,19 @@ release: CFLAGS += -O3 -DNDEBUG
 release: clean $(EXEC)
 
 # Individual compilation for debugging
-$(SRC_DIR)/adjust_labels.o: $(SRC_DIR)/adjust_labels.c include/assembler.h
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+$(SRC_DIR)/adjust_labels.o: $(SRC_DIR)/adjust_labels.cpp include/assembler.hpp
 
-$(SRC_DIR)/encode.o: $(SRC_DIR)/encode.c include/assembler.h
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+$(SRC_DIR)/encode.o: $(SRC_DIR)/encode.cpp include/assembler.hpp
 
-$(SRC_DIR)/expand_pseudoinstruction.o: $(SRC_DIR)/expand_pseudoinstruction.c include/assembler.h
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+$(SRC_DIR)/expand_pseudoinstruction.o: $(SRC_DIR)/expand_pseudoinstruction.cpp include/assembler.hpp
 
-$(SRC_DIR)/first_pass.o: $(SRC_DIR)/first_pass.c include/assembler.h
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+$(SRC_DIR)/first_pass.o: $(SRC_DIR)/first_pass.cpp include/assembler.hpp
 
-$(SRC_DIR)/second_pass.o: $(SRC_DIR)/second_pass.c include/assembler.h
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+$(SRC_DIR)/second_pass.o: $(SRC_DIR)/second_pass.cpp include/assembler.hpp
 
-$(SRC_DIR)/utils.o: $(SRC_DIR)/utils.c include/assembler.h
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+$(SRC_DIR)/utils.o: $(SRC_DIR)/utils.cpp include/assembler.hpp
 
-$(SRC_DIR)/main.o: $(SRC_DIR)/main.c include/assembler.h
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+$(SRC_DIR)/main.o: $(SRC_DIR)/main.cpp include/assembler.hpp
 
 # Help
 help:

@@ -1,9 +1,9 @@
 /* second_pass.c */
-#include "assembler.h"
-#include <ctype.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
+#include "assembler.hpp"
+#include <cctype>
+#include <cstdlib>
+#include <cstring>
+#include <cstdarg>
 
 /* Add safe snprintf helper at the top */
 static void safe_snprintf(char *dest, size_t size, const char *format, ...) {
@@ -114,14 +114,19 @@ static uint32_t encode_instruction(const assembler_state_t *state, uint32_t curr
 }
 
 static void parse_instruction_args(const char *s, char *op, char *a1, char *a2, char *a3) {
-	char *args = strchr(s, ' ');
+	/* Create a mutable copy for parsing */
+	char temp[MAX_LINE];
+	strncpy(temp, s, MAX_LINE - 1);
+	temp[MAX_LINE - 1] = '\0';
+
+	char *args = strchr(temp, ' ');
 	if (!args) {
-		strcpy(op, s);
+		strcpy(op, temp);
 		return;
 	}
 
-	strncpy(op, s, args - s);
-	op[args - s] = '\0';
+	strncpy(op, temp, args - temp);
+	op[args - temp] = '\0';
 
 	args = trim(args);
 
@@ -141,11 +146,11 @@ static void parse_instruction_args(const char *s, char *op, char *a1, char *a2, 
 		char *between = comma1 + 1;
 		while (isspace(*between)) between++;
 
-		char *temp = between;
-		while (*temp && *temp != ',') temp++;
+		char *temp_ptr = between;
+		while (*temp_ptr && *temp_ptr != ',') temp_ptr++;
 
-		strncpy(a2, between, temp - between);
-		a2[temp - between] = '\0';
+		strncpy(a2, between, temp_ptr - between);
+		a2[temp_ptr - between] = '\0';
 
 		strcpy(a3, trim(comma2 + 1));
 	}

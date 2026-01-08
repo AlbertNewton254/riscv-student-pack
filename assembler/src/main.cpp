@@ -1,6 +1,6 @@
 /* main.c */
-#include "assembler.h"
-#include <stdlib.h>
+#include "assembler.hpp"
+#include <cstdlib>
 
 int main(int argc, char **argv) {
 	if (argc != 3) {
@@ -8,8 +8,8 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	FILE *in = fopen(argv[1], "r");
-	FILE *out = fopen(argv[2], "wb");
+	FilePtr in(fopen(argv[1], "r"));
+	FilePtr out(fopen(argv[2], "wb"));
 
 	if (!in || !out) {
 		perror("file");
@@ -19,19 +19,16 @@ int main(int argc, char **argv) {
 	assembler_state_t state;
 
 	/* First pass: collect labels and calculate section sizes */
-	first_pass(in, &state);
+	first_pass(in.get(), &state);
 
 	/* Adjust label addresses: data section comes after text section */
 	adjust_labels(&state, state.text_size);
 
 	/* Second pass: generate output using adjusted addresses */
-	second_pass(in, out, &state);
-
-	fclose(in);
-	fclose(out);
+	second_pass(in.get(), out.get(), &state);
 
 	printf("Assembled successfully.\n");
-	printf("Text: %u bytes, Data: %u bytes, Labels: %d\n",
-		   state.text_size, state.data_size, state.label_count);
+	printf("Text: %u bytes, Data: %u bytes, Labels: %zu\n",
+		   state.text_size, state.data_size, state.labels.size());
 	return 0;
 }
