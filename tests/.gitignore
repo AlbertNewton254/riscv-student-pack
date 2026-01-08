@@ -1,0 +1,4 @@
+test_emulator
+test_assembler
+test_integration
+*.o
