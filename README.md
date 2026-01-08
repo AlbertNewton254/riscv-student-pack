@@ -1,6 +1,6 @@
 # RISC-V Student Pack
 
-Educational toolkit for learning RISC-V: assembler and emulator in modern C++ (previously in C).
+Educational toolkit for learning RISC-V: assembler and emulator in modern C++.
 
 ## Overview
 
@@ -12,28 +12,41 @@ First pass resolves labels, second pass encodes instructions.
 **Emulator**: Instruction simulator executing RV32I binaries.
 Implements base integer instructions with Linux ABI syscalls.
 
-Both written in modern C++ (C++17) for clarity, safety, and extensibility.
+Both written in modern C++ (C++17) with object-oriented design for clarity, safety, and extensibility.
 
 ---
 
 ## Design Choices
 
-### Modern C++ Features
+### Object-Oriented Architecture
 
-**Smart Pointers**: RAII-based file management with `std::unique_ptr`.
-Automatic resource cleanup, no manual fclose() needed.
+**Encapsulation**: CPU, Memory, Instruction, and Assembler classes with private state.
+Clear interfaces, controlled access through public methods.
 
-**Dynamic Containers**: `std::vector` for label storage.
-No arbitrary limits, grows as needed.
+**RAII Resource Management**: Constructors/destructors handle initialization and cleanup.
+Automatic resource safety, no manual memory management.
 
-**Type Safety**: C++ standard library headers and stricter type checking.
-Catch errors at compile time.
+**Type-Safe Containers**:
+- `std::array<uint32_t, 32>` for CPU registers (fixed size, bounds-checked)
+- `std::vector` for dynamic label storage and memory
+- `std::map` for symbol table (efficient lookups)
 
-### Assembler
+No arbitrary limits, compile-time safety where possible.
 
-Two-pass architecture for simple label resolution:
-- Pass 1: Build symbol table, calculate addresses
+**Modern C++ Practices**:
+- Range-based for loops for clarity
+- Boolean return types instead of error codes
+- Method chaining where appropriate
+- Const correctness throughout
+
+### Assembler Architecture
+
+**Two-Pass Design**:
+- Pass 1: Build symbol table with `std::map<std::string, uint32_t>`, calculate addresses
 - Pass 2: Encode instructions with resolved symbols
+
+**Assembler Class**: Central object managing the assembly process.
+Encapsulates symbol table, current section, address tracking.
 
 **Binary Output**: Flat binaries (not ELF) for simplicity.
 What you see is what executes.
@@ -43,11 +56,19 @@ Idiomatic assembly, pure execution.
 
 **Sections**: `.text` and `.data` with automatic address calculation.
 
-### Emulator
+### Emulator Architecture
 
-Fetch-decode-execute cycle with 16 MiB RAM.
+**CPU Class**: Encapsulates registers (`std::array<uint32_t, 32>`), PC, and execution state.
+Methods for register access, instruction fetch/decode/execute.
 
-**Memory**: Stack at 0x80000000, conventional RISC-V layout.
+**Memory Class**: Manages RAM with `std::vector<uint8_t>`.
+Bounds checking, alignment validation, separate read/write methods.
+
+**Instruction Class**: Decodes and represents RISC-V instructions.
+Type-safe format detection, immediate value extraction.
+
+**Fetch-Decode-Execute**: Clean separation with dedicated methods.
+16 MiB RAM, stack at 0x80000000 (conventional RISC-V layout).
 
 **Syscalls**: Minimal Linux ABI set for basic I/O.
 
@@ -167,37 +188,95 @@ Test:
 
 ```
 riscv-student-pack/
-├── assembler/              # Two-pass assembler implementation
+├── assembler/              # Object-oriented two-pass assembler
 │   ├── include/
-│   │   └── assembler.hpp  # Public API and data structures
+│   │   └── assembler.hpp  # Assembler class, symbol table, data structures
 │   ├── src/
 │   │   ├── main.cpp       # Entry point and CLI
+│   │   ├── constructor.cpp # Assembler initialization
 │   │   ├── first_pass.cpp # Symbol table construction
 │   │   ├── second_pass.cpp # Instruction encoding
 │   │   ├── encode.cpp     # Instruction format encoding
-│   │   ├── expand_pseudoinstruction.cpp
-│   │   ├── adjust_labels.cpp
+│   │   ├── expand_pseudoinstruction.cpp # Pseudoinstruction expansion
+│   │   ├── adjust_labels.cpp # Label address adjustment
 │   │   └── utils.cpp      # Parsing utilities
 │   └── tests/
-│       └── test_assembler.cpp
+│       └── test_assembler.cpp # Unit tests with C++ assertions
 │
-├── emulator/              # RV32I instruction simulator
+├── emulator/              # Object-oriented RV32I instruction simulator
 │   ├── include/
-│   │   ├── cpu.hpp        # CPU state and control
-│   │   ├── memory.hpp     # Memory subsystem
-│   │   └── instructions.hpp # Instruction decoder
+│   │   ├── cpu.hpp        # CPU class (registers as std::array, execution)
+│   │   ├── memory.hpp     # Memory class (bounds-checked access)
+│   │   └── instructions.hpp # Instruction class (decode/execute)
 │   ├── src/
 │   │   ├── main.cpp       # Entry point and CLI
-│   │   ├── cpu.cpp        # Fetch-decode-execute loop
-│   │   ├── instructions.cpp # Instruction implementations
-│   │   └── memory.cpp     # Memory operations
+│   │   ├── cpu.cpp        # Fetch-decode-execute, register management
+│   │   ├── instructions.cpp # Instruction decoder and immediate extraction
+│   │   └── memory.cpp     # Memory operations with alignment checks
 │   └── tests/
-│       └── test_emulator.cpp
+│       └── test_emulator.cpp # Comprehensive unit tests (12 test suites)
 │
 ├── Makefile               # Root build configuration
-├── unit_tests.sh          # Test runner
+├── unit_tests.sh          # Automated test runner
+├── LICENSE                # MIT License
 └── README.md
 ```
+
+---
+
+## Implementation Highlights
+
+### Modern C++ Features in Action
+
+**CPU Registers**: `std::array<uint32_t, 32>` provides:
+- Fixed-size container (known at compile time)
+- Bounds checking with `.at()` method
+- Zero-cost abstraction over raw arrays
+- Iterator support for range-based loops
+
+**Memory Management**: `std::vector<uint8_t>` for RAM:
+- Automatic allocation/deallocation
+- Dynamic sizing based on requirements
+- Contiguous storage for cache efficiency
+- No manual memory management
+
+**Symbol Table**: `std::map<std::string, uint32_t>`:
+- Automatic ordering by label name
+- Logarithmic lookup time
+- Type-safe key-value pairs
+
+**Boolean Returns**: Methods return `bool` instead of error codes:
+- `decode()` returns true/false for success
+- `is_running()` checks CPU state
+- More idiomatic C++ style
+
+**Object Lifecycle**:
+- Constructors initialize all state
+- Destructors automatically clean up
+- Copy/move semantics properly handled
+- No dangling pointers or resource leaks
+
+### Testing
+
+Comprehensive unit test suites using C++ assertions:
+
+**Emulator Tests** (12 test suites):
+1. CPU initialization
+2. Memory operations (8/16/32-bit, alignment)
+3. Sign extension
+4. Instruction decoding
+5. Register operations
+6. ALU operations
+7. Load/store operations
+8. Branch operations
+9. System call operations
+10. Complete CPU step execution
+11. Complex instruction execution
+12. Memory layout validation
+
+**Assembler Tests**: Label resolution, instruction encoding, data directives.
+
+Run all tests: `./unit_tests.sh`
 
 ---
 
@@ -206,36 +285,42 @@ riscv-student-pack/
 ### Near-Term
 
 **RV32M Extension**: Multiplication and division instructions.
-Completes the baseline embedded profile.
+Completes the baseline embedded profile. Could be implemented as additional instruction classes.
 
 **More Syscalls**: Add `lseek`, directory ops, `mmap`.
-Enables more realistic programs.
+Enables more realistic programs. Extend syscall handling in CPU class.
 
-**Better Errors**: Line numbers in assembler.
-Instruction tracing in emulator.
+**Better Errors**: Line numbers in assembler with source tracking.
+Instruction tracing in emulator with debug mode.
 
 ### Medium-Term
 
 **ELF Format**: Generate standard object files.
-Interop with GNU toolchain and GDB.
+Interop with GNU toolchain and GDB. Consider using ELFIO library.
 
 **Multi-File Assembly**: Separate compilation and linking.
-Mirrors real development workflows.
+Mirrors real development workflows. Would require linker implementation.
 
 **Disassembler**: Binary to assembly converter.
-Aids debugging, demonstrates reversibility.
+Aids debugging, demonstrates reversibility. Reverse the Instruction class logic.
 
 ### Long-Term
 
 **Extensions**: Floating-point (F, D), atomics (A), compressed (C).
+Could be implemented as derived instruction classes.
 
 **Performance Tools**: Cycle counting, cache simulation.
-Microarchitecture teaching.
+Microarchitecture teaching. Add instrumentation to CPU class.
 
 **Cross-Platform**: Abstract syscalls for Windows/macOS.
+Strategy pattern for syscall implementation.
+
+**Template-Based Instruction Dispatch**: Compile-time optimization using C++ templates.
+Zero-overhead abstractions for instruction execution.
 
 These are natural evolution paths, not requirements.
 Suitable as student projects or incremental improvements.
+The object-oriented design makes extension straightforward.
 
 ---
 
