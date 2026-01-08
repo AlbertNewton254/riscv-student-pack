@@ -86,10 +86,11 @@ Both tools implement the complete RV32I base (32 instructions).
 
 - All RV32I instructions (R, I, S, B, U, J formats)
 - Pseudoinstructions: `li`, `la`, `mv`, `nop`
-- `.text` and `.data` sections
+- Full GAS-compatible `.section` directive support with arbitrary section names
 - Data directives: `.ascii`, `.asciiz`, `.byte`, `.half`, `.word`, `.space`
 - Forward/backward label references
 - Accepts `.s` and `.asm` files
+- **Debug mode**: Optional `--debug` flag for detailed assembly trace output
 
 ### Emulator
 
@@ -98,6 +99,7 @@ Both tools implement the complete RV32I base (32 instructions).
 - 16 MiB RAM, configurable load address
 - Register dumps on errors
 - Standard file I/O
+- **Debug mode**: Optional `--debug` flag for fetch/decode/execute tracing
 
 ---
 
@@ -207,9 +209,19 @@ Assemble:
 ./assembler/riscv_assembler program.s program.bin
 ```
 
+Assemble with debug output:
+```bash
+./assembler/riscv_assembler --debug program.s program.bin
+```
+
 Run:
 ```bash
 ./emulator/riscv_emulator program.bin [load_address]
+```
+
+Run with debug tracing:
+```bash
+./emulator/riscv_emulator --debug program.bin
 ```
 
 Test:
@@ -314,6 +326,65 @@ Comprehensive unit test suites using C++ assertions:
 **Assembler Tests**: Label resolution, instruction encoding, data directives.
 
 Run all tests: `./unit_tests.sh`
+
+---
+
+## Debug Mode
+
+Both the assembler and emulator support a `--debug` flag for detailed execution tracing, useful for learning and troubleshooting.
+
+### Assembler Debug Output
+
+With `--debug`, the assembler displays:
+- Each line processed during assembly
+- Pseudoinstruction expansions
+- Detailed operand parsing breakdown
+- Section switches and label definitions
+
+**Example:**
+```bash
+./assembler/riscv_assembler --debug program.s program.bin
+```
+
+**Sample output:**
+```
+Processed line: 'li x10, 42'
+Expanding pseudoinstruction: li -> addi x10, x0, 42
+DEBUG PARSING:
+  Function: encode
+  Instruction Type: I-type
+  rd=10, rs1=0, imm=42
+```
+
+### Emulator Debug Output
+
+With `--debug`, the emulator shows:
+- **Fetch**: Current PC and raw instruction (hex)
+- **Decode**: Instruction name and format
+- **Execute**: Decoded operands and execution details
+- Register writes and memory operations
+- Branch/jump targets
+
+**Example:**
+```bash
+./emulator/riscv_emulator --debug program.bin
+```
+
+**Sample output:**
+```
+--- Instruction Cycle ---
+Fetch: PC=0x00000000 Instruction=0x02a00513
+Decode: addi (I-type)
+Execute: rd=10 rs1=0 imm=42
+Executed: addi x10, x0, 42
+```
+
+**Use cases:**
+- Understanding instruction encoding
+- Debugging assembly programs
+- Learning RISC-V execution model
+- Verifying pseudoinstruction expansion
+- Tracing control flow
 
 ---
 
