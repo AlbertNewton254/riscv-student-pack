@@ -16,12 +16,12 @@ CPU::CPU() {
 		x[i] = 0;
 	}
 	pc = 0;
-	running = 1;
+	running = true;
 
 	x[2] = STACK_TOP;
 }
 
-int CPU::is_running() const {
+bool CPU::is_running() const {
 	return running;
 }
 
@@ -79,7 +79,7 @@ cpu_status_t CPU::handle_syscall(Memory *mem) {
 
 	switch (syscall_num) {
 		case SYS_exit: {
-			running = 0;
+			running = false;
 			return CPU_SYSCALL_EXIT;
 		}
 

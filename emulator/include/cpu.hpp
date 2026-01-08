@@ -59,7 +59,7 @@ class CPU {
 private:
 	uint32_t x[32];
 	uint32_t pc;
-	int running;
+	bool running;
 
 	/**
 	 * Read register value (x0 always returns 0)
@@ -149,9 +149,9 @@ public:
 	/**
 	 * Check if CPU is running
 	 *
-	 * Output: Non-zero if running
+	 * Output: true if running, false otherwise
 	 */
-	int is_running() const;
+	bool is_running() const;
 
 	/**
 	 * Get program counter

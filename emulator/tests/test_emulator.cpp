@@ -26,7 +26,7 @@ static void test_cpu_init() {
 	}
 
 	assert(cpu.get_pc() == 0);
-	assert(cpu.is_running() != 0);
+	assert(cpu.is_running());
 
 	std::printf("\tOK CPU initialization works\n");
 }
@@ -302,7 +302,7 @@ static void test_system_calls() {
 
 	cpu_status_t status = cpu.step(&mem);
 	assert(status == CPU_SYSCALL_EXIT);
-	assert(cpu.is_running() == 0);
+	assert(!cpu.is_running());
 
 	std::printf("\tOK System call operations work (tested through step)\n");
 }
@@ -348,7 +348,7 @@ static void test_cpu_step() {
 	/* Execute third instruction (ecall) */
 	status = cpu.step(&mem);
 	assert(status == CPU_SYSCALL_EXIT);
-	assert(cpu.is_running() == 0);
+	assert(!cpu.is_running());
 
 	/* Test with misaligned PC */
 	CPU cpu2;
