@@ -334,6 +334,283 @@ static void test_pseudoinstructions(void) {
 	printf("\tOK pseudoinstruction expansion works\n");
 }
 
+static void test_call_ret_pseudoinstructions(void) {
+	printf("Test 11: Call/Ret pseudoinstructions...\n");
+
+	const char *assembly =
+		".text\n"
+		"main:\n"
+		"	call func\n"
+		"	j end\n"
+		"func:\n"
+		"	nop\n"
+		"	ret\n"
+		"end:\n"
+		"	nop\n";
+
+	FILE *in = tmpfile();
+	FILE *out = tmpfile();
+	fputs(assembly, in);
+	rewind(in);
+
+	Assembler assembler;
+	assembler.first_pass(in);
+
+	/* call (1 instr) + j (1 instr) + nop (1 instr) + ret (1 instr) + nop (1 instr) = 5 instructions */
+	assert(assembler.get_text_size() == 20);
+
+	assembler.adjust_labels(assembler.get_text_size());
+	assembler.second_pass(in, out);
+
+	/* Verify output was generated */
+	fseek(out, 0, SEEK_END);
+	long size = ftell(out);
+	assert(size == 20);
+
+	fclose(in);
+	fclose(out);
+	printf("\tOK call/ret pseudoinstructions work\n");
+}
+
+static void test_la_pseudoinstruction(void) {
+	printf("Test 12: Load Address (la) pseudoinstruction...\n");
+
+	const char *assembly =
+		".text\n"
+		"main:\n"
+		"	la x1, data_label\n"
+		"	nop\n"
+		".data\n"
+		"data_label:\n"
+		"	.word 42\n";
+
+	FILE *in = tmpfile();
+	FILE *out = tmpfile();
+	fputs(assembly, in);
+	rewind(in);
+
+	Assembler assembler;
+	assembler.first_pass(in);
+
+	/* la expands to auipc + addi (2 instr) + nop (1 instr) = 3 instructions = 12 bytes */
+	assert(assembler.get_text_size() == 12);
+
+	assembler.adjust_labels(assembler.get_text_size());
+	assembler.second_pass(in, out);
+
+	fclose(in);
+	fclose(out);
+	printf("\tOK la pseudoinstruction works\n");
+}
+
+static void test_custom_sections(void) {
+	printf("Test 13: Custom section names (.text.startup, .rodata, .bss)...\n");
+
+	/* Test 1: .text.startup subsection */
+	const char *assembly1 =
+		".section .text.startup\n"
+		"	addi x1, x0, 1\n"
+		"	addi x2, x0, 2\n";
+
+	FILE *in1 = tmpfile();
+	fputs(assembly1, in1);
+	rewind(in1);
+
+	Assembler assembler1;
+	assembler1.first_pass(in1);
+
+	/* .text.startup should be treated as text: 2 instructions = 8 bytes */
+	assert(assembler1.get_text_size() == 8);
+	fclose(in1);
+
+	/* Test 2: .rodata section */
+	const char *assembly2 =
+		".section .rodata\n"
+		"	.word 42\n"
+		"	.word 100\n";
+
+	FILE *in2 = tmpfile();
+	fputs(assembly2, in2);
+	rewind(in2);
+
+	Assembler assembler2;
+	assembler2.first_pass(in2);
+
+	/* .rodata should be treated as data: 2 words = 8 bytes */
+	assert(assembler2.get_data_size() == 8);
+	fclose(in2);
+
+	/* Test 3: .bss section */
+	const char *assembly3 =
+		".section .bss\n"
+		"	.space 16\n";
+
+	FILE *in3 = tmpfile();
+	fputs(assembly3, in3);
+	rewind(in3);
+
+	Assembler assembler3;
+	assembler3.first_pass(in3);
+
+	/* .bss should be treated as data: 16 bytes */
+	assert(assembler3.get_data_size() == 16);
+	fclose(in3);
+
+	printf("\tOK custom section names work\n");
+}
+
+static void test_data_directives(void) {
+	printf("Test 14: Data directives (.byte, .half, .space)...\n");
+
+	const char *assembly =
+		".data\n"
+		"byte_val:\n"
+		"	.byte 0x12\n"
+		"half_val:\n"
+		"	.half 0x1234\n"
+		"word_val:\n"
+		"	.word 0x12345678\n"
+		"space_val:\n"
+		"	.space 10\n";
+
+	FILE *in = tmpfile();
+	fputs(assembly, in);
+	rewind(in);
+
+	Assembler assembler;
+	assembler.first_pass(in);
+
+	/* .byte (1) + .half (2) + .word (4) + .space (10) = 17 bytes */
+	assert(assembler.get_data_size() == 17);
+
+	fclose(in);
+	printf("\tOK data directives work\n");
+}
+
+static void test_ascii_directives(void) {
+	printf("Test 15: ASCII directives...\n");
+
+	const char *assembly =
+		".data\n"
+		"str1:\n"
+		"	.ascii \"Hello\"\n"
+		"str2:\n"
+		"	.asciiz \"World\"\n";
+
+	FILE *in = tmpfile();
+	FILE *out = tmpfile();
+	fputs(assembly, in);
+	rewind(in);
+
+	Assembler assembler;
+	assembler.first_pass(in);
+
+	/* "Hello" (5 bytes) + "World\0" (6 bytes) = 11 bytes */
+	assert(assembler.get_data_size() == 11);
+
+	assembler.adjust_labels(0);  /* No text section */
+	assembler.second_pass(in, out);
+
+	/* Verify output */
+	fseek(out, 0, SEEK_END);
+	long size = ftell(out);
+	assert(size == 11);
+
+	/* Verify content */
+	rewind(out);
+	char buffer[12];
+	size_t bytes_read = fread(buffer, 1, 11, out);
+	assert(bytes_read == 11);
+	assert(memcmp(buffer, "Hello", 5) == 0);
+	assert(memcmp(buffer + 5, "World", 6) == 0);
+	assert(buffer[10] == '\0');
+
+	fclose(in);
+	fclose(out);
+	printf("\tOK ASCII directives work\n");
+}
+
+static void test_forward_backward_labels(void) {
+	printf("Test 16: Forward and backward label references...\n");
+
+	const char *assembly =
+		".text\n"
+		"start:\n"
+		"	beq x1, x2, forward\n"
+		"backward:\n"
+		"	nop\n"
+		"	j start\n"
+		"forward:\n"
+		"	beq x3, x4, backward\n"
+		"	nop\n";
+
+	FILE *in = tmpfile();
+	FILE *out = tmpfile();
+	fputs(assembly, in);
+	rewind(in);
+
+	Assembler assembler;
+	assembler.first_pass(in);
+
+	/* 5 instructions = 20 bytes */
+	assert(assembler.get_text_size() == 20);
+
+	assembler.adjust_labels(assembler.get_text_size());
+	assembler.second_pass(in, out);
+
+	/* Verify output was generated */
+	fseek(out, 0, SEEK_END);
+	long size = ftell(out);
+	assert(size == 20);
+
+	fclose(in);
+	fclose(out);
+	printf("\tOK forward/backward label references work\n");
+}
+
+static void test_multiple_data_items(void) {
+	printf("Test 17: Multiple data items per directive...\n");
+
+	const char *assembly =
+		".data\n"
+		"bytes:\n"
+		"	.byte 1, 2, 3, 4, 5\n"
+		"halfs:\n"
+		"	.half 10, 20, 30\n"
+		"words:\n"
+		"	.word 100, 200, 300, 400\n";
+
+	FILE *in = tmpfile();
+	FILE *out = tmpfile();
+	fputs(assembly, in);
+	rewind(in);
+
+	Assembler assembler;
+	assembler.first_pass(in);
+
+	/* .byte: 5 bytes, .half: 6 bytes, .word: 16 bytes = 27 bytes */
+	assert(assembler.get_data_size() == 27);
+
+	assembler.adjust_labels(0);
+	assembler.second_pass(in, out);
+
+	/* Verify output */
+	fseek(out, 0, SEEK_END);
+	long size = ftell(out);
+	assert(size == 27);
+
+	/* Verify some values */
+	rewind(out);
+	uint8_t bytes[5];
+	size_t bytes_read2 = fread(bytes, 1, 5, out);
+	assert(bytes_read2 == 5);
+	assert(bytes[0] == 1 && bytes[1] == 2 && bytes[4] == 5);
+
+	fclose(in);
+	fclose(out);
+	printf("\tOK multiple data items per directive work\n");
+}
+
 int main(void) {
 	printf("=== RISC-V Assembler Comprehensive Tests ===\n\n");
 
@@ -347,7 +624,14 @@ int main(void) {
 	test_section_switching();
 	test_full_assembly();
 	test_pseudoinstructions();
+	test_call_ret_pseudoinstructions();
+	test_la_pseudoinstruction();
+	test_custom_sections();
+	test_data_directives();
+	test_ascii_directives();
+	test_forward_backward_labels();
+	test_multiple_data_items();
 
-	printf("\n=== All %d tests passed! ===\n", 10);
+	printf("\n=== All %d tests passed! ===\n", 17);
 	return 0;
 }

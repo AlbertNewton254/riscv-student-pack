@@ -429,6 +429,428 @@ static void test_memory_layout() {
 	std::printf("\tOK Memory layout is correct\n");
 }
 
+/* Test 13: Logical operations (AND, OR, XOR) */
+static void test_logical_operations() {
+	std::printf("Test 13: Logical operations...\n");
+
+	CPU cpu;
+	Memory mem(8192);
+
+	/* Test AND: and x1, x2, x3 */
+	/* x2 = 0xFF, x3 = 0x0F, result = 0x0F */
+	uint32_t and_instr = 0x003170B3;  /* and x1, x2, x3 */
+	cpu.set_pc(0x1000);
+	cpu.set_register(2, 0xFF);
+	cpu.set_register(3, 0x0F);
+	mem.write32(0x1000, and_instr);
+
+	cpu_status_t status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 0x0F);
+
+	/* Test OR: or x4, x2, x3 */
+	/* x2 = 0xF0, x3 = 0x0F, result = 0xFF */
+	uint32_t or_instr = 0x00316233;  /* or x4, x2, x3 */
+	cpu.set_pc(0x1004);
+	cpu.set_register(2, 0xF0);
+	cpu.set_register(3, 0x0F);
+	mem.write32(0x1004, or_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(4) == 0xFF);
+
+	/* Test XOR: xor x5, x2, x3 */
+	/* x2 = 0xFF, x3 = 0x0F, result = 0xF0 */
+	uint32_t xor_instr = 0x003142B3;  /* xor x5, x2, x3 */
+	cpu.set_pc(0x1008);
+	cpu.set_register(2, 0xFF);
+	cpu.set_register(3, 0x0F);
+	mem.write32(0x1008, xor_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(5) == 0xF0);
+
+	/* Test ANDI: andi x6, x2, 0xF0 */
+	uint32_t andi_instr = 0x0F017313;  /* andi x6, x2, 0xF0 */
+	cpu.set_pc(0x100C);
+	cpu.set_register(2, 0xFF);
+	mem.write32(0x100C, andi_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(6) == 0xF0);
+
+	/* Test ORI: ori x7, x2, 0x0F */
+	uint32_t ori_instr = 0x00F16393;  /* ori x7, x2, 0x0F */
+	cpu.set_pc(0x1010);
+	cpu.set_register(2, 0xF0);
+	mem.write32(0x1010, ori_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(7) == 0xFF);
+
+	/* Test XORI: xori x8, x2, 0xFF */
+	uint32_t xori_instr = 0x0FF14413;  /* xori x8, x2, 0xFF */
+	cpu.set_pc(0x1014);
+	cpu.set_register(2, 0xAA);
+	mem.write32(0x1014, xori_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(8) == 0x55);  /* 0xAA ^ 0xFF = 0x55 */
+
+	std::printf("\tOK Logical operations work\n");
+}
+
+/* Test 14: Shift operations */
+static void test_shift_operations() {
+	std::printf("Test 14: Shift operations...\n");
+
+	CPU cpu;
+	Memory mem(8192);
+
+	/* Test SLL: sll x1, x2, x3 */
+	/* x2 = 0x10, x3 = 2, result = 0x40 */
+	uint32_t sll_instr = 0x003110B3;  /* sll x1, x2, x3 */
+	cpu.set_pc(0x1000);
+	cpu.set_register(2, 0x10);
+	cpu.set_register(3, 2);
+	mem.write32(0x1000, sll_instr);
+
+	cpu_status_t status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 0x40);
+
+	/* Test SRL: srl x4, x2, x3 */
+	/* x2 = 0x80, x3 = 2, result = 0x20 */
+	uint32_t srl_instr = 0x0031D233;  /* srl x4, x2, x3 */
+	cpu.set_pc(0x1004);
+	cpu.set_register(2, 0x80);
+	cpu.set_register(3, 2);
+	mem.write32(0x1004, srl_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(4) == 0x20);
+
+	/* Test SRA: sra x5, x2, x3 */
+	/* x2 = 0x80000000 (negative), x3 = 1, result = 0xC0000000 (sign extended) */
+	uint32_t sra_instr = 0x4031D2B3;  /* sra x5, x2, x3 */
+	cpu.set_pc(0x1008);
+	cpu.set_register(2, 0x80000000);
+	cpu.set_register(3, 1);
+	mem.write32(0x1008, sra_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(5) == 0xC0000000);
+
+	/* Test SLLI: slli x6, x2, 3 */
+	uint32_t slli_instr = 0x00311313;  /* slli x6, x2, 3 */
+	cpu.set_pc(0x100C);
+	cpu.set_register(2, 0x10);
+	mem.write32(0x100C, slli_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(6) == 0x80);
+
+	/* Test SRLI: srli x7, x2, 4 */
+	uint32_t srli_instr = 0x00415393;  /* srli x7, x2, 4 */
+	cpu.set_pc(0x1010);
+	cpu.set_register(2, 0xF0);
+	mem.write32(0x1010, srli_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(7) == 0x0F);
+
+	/* Test SRAI: srai x8, x2, 2 */
+	/* x2 = 0x80000000, shift right 2 with sign extension = 0xE0000000 */
+	uint32_t srai_instr = 0x40215413;  /* srai x8, x2, 2 */
+	cpu.set_pc(0x1014);
+	cpu.set_register(2, 0x80000000);
+	mem.write32(0x1014, srai_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(8) == 0xE0000000);
+
+	std::printf("\tOK Shift operations work\n");
+}
+
+/* Test 15: Comparison operations */
+static void test_comparison_operations() {
+	std::printf("Test 15: Comparison operations...\n");
+
+	CPU cpu;
+	Memory mem(8192);
+
+	/* Test SLT: slt x1, x2, x3 (signed comparison) */
+	/* x2 = -1 (0xFFFFFFFF), x3 = 1, result = 1 (true, -1 < 1) */
+	uint32_t slt_instr = 0x003120B3;  /* slt x1, x2, x3 */
+	cpu.set_pc(0x1000);
+	cpu.set_register(2, 0xFFFFFFFF);  /* -1 in two's complement */
+	cpu.set_register(3, 1);
+	mem.write32(0x1000, slt_instr);
+
+	cpu_status_t status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 1);
+
+	/* Test SLTU: sltu x4, x2, x3 (unsigned comparison) */
+	/* x2 = 0xFFFFFFFF, x3 = 1, result = 0 (false, 0xFFFFFFFF > 1 unsigned) */
+	uint32_t sltu_instr = 0x00313233;  /* sltu x4, x2, x3 */
+	cpu.set_pc(0x1004);
+	cpu.set_register(2, 0xFFFFFFFF);
+	cpu.set_register(3, 1);
+	mem.write32(0x1004, sltu_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(4) == 0);
+
+	/* Test SLTI: slti x5, x2, 10 */
+	/* x2 = 5, immediate = 10, result = 1 (true, 5 < 10) */
+	uint32_t slti_instr = 0x00A12293;  /* slti x5, x2, 10 */
+	cpu.set_pc(0x1008);
+	cpu.set_register(2, 5);
+	mem.write32(0x1008, slti_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(5) == 1);
+
+	/* Test SLTIU: sltiu x6, x2, 10 */
+	/* x2 = 15, immediate = 10, result = 0 (false, 15 > 10) */
+	uint32_t sltiu_instr = 0x00A13313;  /* sltiu x6, x2, 10 */
+	cpu.set_pc(0x100C);
+	cpu.set_register(2, 15);
+	mem.write32(0x100C, sltiu_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(6) == 0);
+
+	std::printf("\tOK Comparison operations work\n");
+}
+
+/* Test 16: All load variants (lb, lh, lbu, lhu) */
+static void test_load_variants() {
+	std::printf("Test 16: Load variants...\n");
+
+	CPU cpu;
+	Memory mem(8192);
+
+	/* Setup test data in memory */
+	/* Address 0x200: 0x89ABCDEF (little-endian: EF CD AB 89) */
+	mem.write8(0x200, 0xEF);
+	mem.write8(0x201, 0xCD);
+	mem.write8(0x202, 0xAB);
+	mem.write8(0x203, 0x89);
+
+	/* Test LB: lb x1, 0x200(x0) - load signed byte */
+	/* Byte at 0x200 = 0xEF, sign-extended to 0xFFFFFFEF */
+	uint32_t lb_instr = 0x20000083;  /* lb x1, 0x200(x0) */
+	cpu.set_pc(0x1000);
+	mem.write32(0x1000, lb_instr);
+
+	cpu_status_t status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 0xFFFFFFEF);
+
+	/* Test LBU: lbu x2, 0x200(x0) - load unsigned byte */
+	/* Byte at 0x200 = 0xEF, zero-extended to 0x000000EF */
+	uint32_t lbu_instr = 0x20004103;  /* lbu x2, 0x200(x0) */
+	cpu.set_pc(0x1004);
+	mem.write32(0x1004, lbu_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(2) == 0x000000EF);
+
+	/* Test LH: lh x3, 0x200(x0) - load signed halfword */
+	/* Halfword at 0x200 = 0xCDEF, sign-extended to 0xFFFFCDEF */
+	uint32_t lh_instr = 0x20001183;  /* lh x3, 0x200(x0) */
+	cpu.set_pc(0x1008);
+	mem.write32(0x1008, lh_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(3) == 0xFFFFCDEF);
+
+	/* Test LHU: lhu x4, 0x200(x0) - load unsigned halfword */
+	/* Halfword at 0x200 = 0xCDEF, zero-extended to 0x0000CDEF */
+	uint32_t lhu_instr = 0x20005203;  /* lhu x4, 0x200(x0) */
+	cpu.set_pc(0x100C);
+	mem.write32(0x100C, lhu_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(4) == 0x0000CDEF);
+
+	std::printf("\tOK Load variants work\n");
+}
+
+/* Test 17: All store variants (sb, sh, sw) */
+static void test_store_variants() {
+	std::printf("Test 17: Store variants...\n");
+
+	CPU cpu;
+	Memory mem(8192);
+
+	/* Test SB: sb x1, 0x300(x0) - store byte */
+	uint32_t sb_instr = 0x30108023;  /* sb x1, 0x300(x0) */
+	cpu.set_pc(0x1000);
+	cpu.set_register(1, 0x12345678);  /* Only 0x78 should be stored */
+	mem.write32(0x1000, sb_instr);
+
+	cpu_status_t status = cpu.step(&mem);
+	assert(status == CPU_OK);
+
+	uint8_t val8;
+	mem.read8(0x300, &val8);
+	assert(val8 == 0x78);
+
+	/* Test SH: sh x2, 0x302(x0) - store halfword */
+	uint32_t sh_instr = 0x30211123;  /* sh x2, 0x302(x0) */
+	cpu.set_pc(0x1004);
+	cpu.set_register(2, 0xABCD1234);  /* Only 0x1234 should be stored */
+	mem.write32(0x1004, sh_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+
+	uint16_t val16;
+	mem.read16(0x302, &val16);
+	assert(val16 == 0x1234);
+
+	/* Test SW: sw x3, 0x304(x0) - store word */
+	uint32_t sw_instr = 0x30312223;  /* sw x3, 0x304(x0) */
+	cpu.set_pc(0x1008);
+	cpu.set_register(3, 0xDEADBEEF);
+	mem.write32(0x1008, sw_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+
+	uint32_t val32;
+	mem.read32(0x304, &val32);
+	assert(val32 == 0xDEADBEEF);
+
+	std::printf("\tOK Store variants work\n");
+}
+
+/* Test 18: All branch variants */
+static void test_all_branch_variants() {
+	std::printf("Test 18: All branch variants...\n");
+
+	CPU cpu;
+	Memory mem(8192);
+
+	/* Test BNE: bne x1, x2, 16 (branch if not equal) */
+	uint32_t bne_instr = 0x00209863;  /* bne x1, x2, 16 */
+	cpu.set_pc(0x1000);
+	cpu.set_register(1, 10);
+	cpu.set_register(2, 20);
+	mem.write32(0x1000, bne_instr);
+
+	cpu_status_t status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_pc() == 0x1010);  /* Should branch */
+
+	/* Test BLT: blt x1, x2, 16 (branch if less than, signed) */
+	uint32_t blt_instr = 0x0020C863;  /* blt x1, x2, 16 */
+	cpu.set_pc(0x1000);
+	cpu.set_register(1, 10);
+	cpu.set_register(2, 20);
+	mem.write32(0x1000, blt_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_pc() == 0x1010);  /* Should branch (10 < 20) */
+
+	/* Test BGE: bge x1, x2, 16 (branch if greater or equal, signed) */
+	uint32_t bge_instr = 0x0020D863;  /* bge x1, x2, 16 */
+	cpu.set_pc(0x1000);
+	cpu.set_register(1, 20);
+	cpu.set_register(2, 10);
+	mem.write32(0x1000, bge_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_pc() == 0x1010);  /* Should branch (20 >= 10) */
+
+	/* Test BLTU: bltu x1, x2, 16 (branch if less than, unsigned) */
+	uint32_t bltu_instr = 0x0020E863;  /* bltu x1, x2, 16 */
+	cpu.set_pc(0x1000);
+	cpu.set_register(1, 5);
+	cpu.set_register(2, 10);
+	mem.write32(0x1000, bltu_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_pc() == 0x1010);  /* Should branch (5 < 10 unsigned) */
+
+	/* Test BGEU: bgeu x1, x2, 16 (branch if greater or equal, unsigned) */
+	uint32_t bgeu_instr = 0x0020F863;  /* bgeu x1, x2, 16 */
+	cpu.set_pc(0x1000);
+	cpu.set_register(1, 0xFFFFFFFF);  /* Large unsigned value */
+	cpu.set_register(2, 10);
+	mem.write32(0x1000, bgeu_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_pc() == 0x1010);  /* Should branch (0xFFFFFFFF >= 10 unsigned) */
+
+	std::printf("\tOK All branch variants work\n");
+}
+
+/* Test 19: JALR instruction */
+static void test_jalr_instruction() {
+	std::printf("Test 19: JALR instruction...\n");
+
+	CPU cpu;
+	Memory mem(8192);
+
+	/* Test JALR: jalr x1, x2, 8 */
+	/* Jump to address in x2 + 8, store return address in x1 */
+	uint32_t jalr_instr = 0x008100E7;  /* jalr x1, x2, 8 */
+	cpu.set_pc(0x1000);
+	cpu.set_register(2, 0x2000);
+	mem.write32(0x1000, jalr_instr);
+
+	cpu_status_t status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_pc() == 0x2008);  /* 0x2000 + 8 */
+	assert(cpu.get_register(1) == 0x1004);  /* Return address */
+
+	std::printf("\tOK JALR instruction works\n");
+}
+
+/* Test 20: AUIPC instruction */
+static void test_auipc_instruction() {
+	std::printf("Test 20: AUIPC instruction...\n");
+
+	CPU cpu;
+	Memory mem(8192);
+
+	/* Test AUIPC: auipc x1, 0x12345 */
+	/* Add upper immediate to PC: x1 = PC + (0x12345 << 12) */
+	uint32_t auipc_instr = 0x12345097;  /* auipc x1, 0x12345 */
+	cpu.set_pc(0x1000);
+	mem.write32(0x1000, auipc_instr);
+
+	cpu_status_t status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 0x1000 + 0x12345000);  /* PC + upper immediate */
+
+	std::printf("\tOK AUIPC instruction works\n");
+}
+
 int main() {
 	std::printf("=== RISC-V Emulator Comprehensive Tests ===\n\n");
 
@@ -447,6 +869,14 @@ int main() {
 	test_cpu_step(); test_count++;
 	test_complex_execution(); test_count++;
 	test_memory_layout(); test_count++;
+	test_logical_operations(); test_count++;
+	test_shift_operations(); test_count++;
+	test_comparison_operations(); test_count++;
+	test_load_variants(); test_count++;
+	test_store_variants(); test_count++;
+	test_all_branch_variants(); test_count++;
+	test_jalr_instruction(); test_count++;
+	test_auipc_instruction(); test_count++;
 
 	std::printf("\n=== All %d tests passed! ===\n", test_count);
 	return 0;
