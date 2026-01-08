@@ -526,7 +526,7 @@ static void test_shift_operations() {
 
 	/* Test SRL: srl x4, x2, x3 */
 	/* x2 = 0x80, x3 = 2, result = 0x20 */
-	uint32_t srl_instr = 0x0031D233;  /* srl x4, x2, x3 */
+	uint32_t srl_instr = 0x00315233;  /* srl x4, x2, x3 */
 	cpu.set_pc(0x1004);
 	cpu.set_register(2, 0x80);
 	cpu.set_register(3, 2);
@@ -538,7 +538,7 @@ static void test_shift_operations() {
 
 	/* Test SRA: sra x5, x2, x3 */
 	/* x2 = 0x80000000 (negative), x3 = 1, result = 0xC0000000 (sign extended) */
-	uint32_t sra_instr = 0x4031D2B3;  /* sra x5, x2, x3 */
+	uint32_t sra_instr = 0x403152B3;  /* sra x5, x2, x3 */
 	cpu.set_pc(0x1008);
 	cpu.set_register(2, 0x80000000);
 	cpu.set_register(3, 1);
@@ -703,7 +703,7 @@ static void test_store_variants() {
 	Memory mem(8192);
 
 	/* Test SB: sb x1, 0x300(x0) - store byte */
-	uint32_t sb_instr = 0x30108023;  /* sb x1, 0x300(x0) */
+	uint32_t sb_instr = 0x30100023;  /* sb x1, 0x300(x0) */
 	cpu.set_pc(0x1000);
 	cpu.set_register(1, 0x12345678);  /* Only 0x78 should be stored */
 	mem.write32(0x1000, sb_instr);
@@ -716,7 +716,7 @@ static void test_store_variants() {
 	assert(val8 == 0x78);
 
 	/* Test SH: sh x2, 0x302(x0) - store halfword */
-	uint32_t sh_instr = 0x30211123;  /* sh x2, 0x302(x0) */
+	uint32_t sh_instr = 0x30201123;  /* sh x2, 0x302(x0) */
 	cpu.set_pc(0x1004);
 	cpu.set_register(2, 0xABCD1234);  /* Only 0x1234 should be stored */
 	mem.write32(0x1004, sh_instr);
@@ -729,7 +729,7 @@ static void test_store_variants() {
 	assert(val16 == 0x1234);
 
 	/* Test SW: sw x3, 0x304(x0) - store word */
-	uint32_t sw_instr = 0x30312223;  /* sw x3, 0x304(x0) */
+	uint32_t sw_instr = 0x30302223;  /* sw x3, 0x304(x0) */
 	cpu.set_pc(0x1008);
 	cpu.set_register(3, 0xDEADBEEF);
 	mem.write32(0x1008, sw_instr);
