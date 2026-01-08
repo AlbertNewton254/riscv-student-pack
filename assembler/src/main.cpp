@@ -1,4 +1,4 @@
-/* main.c */
+/* main.cpp */
 #include "assembler.hpp"
 #include <cstdlib>
 
@@ -16,19 +16,19 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	assembler_state_t state;
+	Assembler assembler;
 
 	/* First pass: collect labels and calculate section sizes */
-	first_pass(in.get(), &state);
+	assembler.first_pass(in.get());
 
 	/* Adjust label addresses: data section comes after text section */
-	adjust_labels(&state, state.text_size);
+	assembler.adjust_labels(assembler.get_text_size());
 
 	/* Second pass: generate output using adjusted addresses */
-	second_pass(in.get(), out.get(), &state);
+	assembler.second_pass(in.get(), out.get());
 
 	printf("Assembled successfully.\n");
 	printf("Text: %u bytes, Data: %u bytes, Labels: %zu\n",
-		   state.text_size, state.data_size, state.labels.size());
+		   assembler.get_text_size(), assembler.get_data_size(), assembler.get_label_count());
 	return 0;
 }

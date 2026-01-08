@@ -1,22 +1,19 @@
-/* utils.c */
+/* utils.cpp */
 #include "assembler.hpp"
 #include <cctype>
 #include <cstdlib>
 #include <cstring>
 
-char *trim(char *s) {
+char *Assembler::trim(char *s) {
 	while (isspace(*s)) s++;
 	char *end = s + strlen(s) - 1;
 	while (end > s && isspace(*end)) *end-- = 0;
 	return s;
 }
 
-int reg_num(const char *r) {
+int Assembler::reg_num(const char *r) {
 	if (r == NULL || r[0] == '\0') return -1;
 
-	/* Parse only the leading alphanumeric characters of the input. This
-	 * allows inputs like "t0," or "a1)" to be accepted by stopping at the
-	 * first non-alphanumeric character. */
 	size_t len = 0;
 	while (r[len] && isalnum((unsigned char)r[len])) len++;
 	if (len == 0) return -1;
@@ -26,7 +23,6 @@ int reg_num(const char *r) {
 	memcpy(name, r, len);
 	name[len] = '\0';
 
-	/* Try ABI names first */
 	if (strcmp(name, "zero") == 0) return 0;
 	if (strcmp(name, "ra") == 0) return 1;
 	if (strcmp(name, "sp") == 0) return 2;
@@ -60,7 +56,6 @@ int reg_num(const char *r) {
 	if (strcmp(name, "t5") == 0) return 30;
 	if (strcmp(name, "t6") == 0) return 31;
 
-	/* Fall back to xN format */
 	if (name[0] != 'x') return -1;
 	char *end;
 	long n = strtol(name + 1, &end, 10);
@@ -68,42 +63,33 @@ int reg_num(const char *r) {
 	return (int)n;
 }
 
-uint32_t find_label(const assembler_state_t *state, const char *name) {
-	for (size_t i = 0; i < state->labels.size(); i++) {
-		if (!strcmp(state->labels[i].name, name))
-			return state->labels[i].addr;
+uint32_t Assembler::find_label(const char *name) const {
+	for (size_t i = 0; i < labels.size(); i++) {
+		if (labels[i].name == name)
+			return labels[i].addr;
 	}
 	fprintf(stderr, "Undefined label: %s\n", name);
 	exit(1);
 }
 
-int32_t parse_imm(const assembler_state_t *state, const char *s) {
+int32_t Assembler::parse_imm(const char *s) const {
 	if (s == NULL || s[0] == '\0') {
 		return 0;
 	}
 
-	/* Check for hexadecimal (with optional negative sign) */
 	if ((s[0] == '0' && (s[1] == 'x' || s[1] == 'X')) ||
 		(s[0] == '-' && s[1] == '0' && (s[2] == 'x' || s[2] == 'X'))) {
 		return (int32_t)strtol(s, NULL, 16);
 	}
 
-	/* Check for decimal (positive or negative) */
 	if (isdigit(s[0]) || (s[0] == '-' && isdigit(s[1]))) {
 		return (int32_t)atoi(s);
 	}
 
-	/* If state is NULL, we're in first pass */
-	if (state == NULL) {
-		/* For first pass, labels are not resolved yet */
-		return 0;
-	}
-
-	/* Otherwise, treat as label */
-	return (int32_t)find_label(state, s);
+	return (int32_t)find_label(s);
 }
 
-size_t parse_escaped_string(const char *src, uint8_t *out) {
+size_t Assembler::parse_escaped_string(const char *src, uint8_t *out) {
 	size_t count = 0;
 
 	for (size_t i = 0; src[i] && src[i] != '"'; i++) {

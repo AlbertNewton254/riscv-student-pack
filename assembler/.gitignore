@@ -1,1 +1,3 @@
 riscv_assembler
+test_assembler
+*.o

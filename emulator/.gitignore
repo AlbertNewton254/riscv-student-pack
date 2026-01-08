@@ -1,1 +1,3 @@
 riscv_emulator
+test_emulator
+*.o

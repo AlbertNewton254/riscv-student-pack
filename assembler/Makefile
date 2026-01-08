@@ -7,7 +7,7 @@ INCLUDES = -I./include
 
 # Source files (relative to src directory)
 SRC_DIR = src
-SRC_CPP = $(SRC_DIR)/adjust_labels.cpp $(SRC_DIR)/encode.cpp $(SRC_DIR)/expand_pseudoinstruction.cpp \
+SRC_CPP = $(SRC_DIR)/adjust_labels.cpp $(SRC_DIR)/constructor.cpp $(SRC_DIR)/encode.cpp $(SRC_DIR)/expand_pseudoinstruction.cpp \
         $(SRC_DIR)/first_pass.cpp $(SRC_DIR)/second_pass.cpp $(SRC_DIR)/utils.cpp
 SRC_MAIN = $(SRC_DIR)/main.cpp
 SRC_TEST = tests/test_assembler.cpp

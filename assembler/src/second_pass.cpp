@@ -1,120 +1,118 @@
-/* second_pass.c */
+/* second_pass.cpp */
 #include "assembler.hpp"
 #include <cctype>
 #include <cstdlib>
 #include <cstring>
 #include <cstdarg>
 
-/* Add safe snprintf helper at the top */
 static void safe_snprintf(char *dest, size_t size, const char *format, ...) {
 	va_list args;
 	va_start(args, format);
 	vsnprintf(dest, size, format, args);
 	va_end(args);
-	dest[size - 1] = '\0'; /* Ensure null termination */
+	dest[size - 1] = '\0';
 }
 
-static uint32_t encode_instruction(const assembler_state_t *state, uint32_t current_pc, const char *op, const char *a1, const char *a2, const char *a3) {
+uint32_t Assembler::encode_instruction(uint32_t current_pc, const char *op, const char *a1, const char *a2, const char *a3) const {
 	if (!strcmp(op, "add")) {
-		return encode_r(0x00, reg_num(a3), reg_num(a2), 0x0, reg_num(a1), 0x33);
+		return Encoder::encode_r(0x00, reg_num(a3), reg_num(a2), 0x0, reg_num(a1), 0x33);
 	} else if (!strcmp(op, "sub")) {
-		return encode_r(0x20, reg_num(a3), reg_num(a2), 0x0, reg_num(a1), 0x33);
+		return Encoder::encode_r(0x20, reg_num(a3), reg_num(a2), 0x0, reg_num(a1), 0x33);
 	} else if (!strcmp(op, "sll")) {
-		return encode_r(0x00, reg_num(a3), reg_num(a2), 0x1, reg_num(a1), 0x33);
+		return Encoder::encode_r(0x00, reg_num(a3), reg_num(a2), 0x1, reg_num(a1), 0x33);
 	} else if (!strcmp(op, "slt")) {
-		return encode_r(0x00, reg_num(a3), reg_num(a2), 0x2, reg_num(a1), 0x33);
+		return Encoder::encode_r(0x00, reg_num(a3), reg_num(a2), 0x2, reg_num(a1), 0x33);
 	} else if (!strcmp(op, "sltu")) {
-		return encode_r(0x00, reg_num(a3), reg_num(a2), 0x3, reg_num(a1), 0x33);
+		return Encoder::encode_r(0x00, reg_num(a3), reg_num(a2), 0x3, reg_num(a1), 0x33);
 	} else if (!strcmp(op, "xor")) {
-		return encode_r(0x00, reg_num(a3), reg_num(a2), 0x4, reg_num(a1), 0x33);
+		return Encoder::encode_r(0x00, reg_num(a3), reg_num(a2), 0x4, reg_num(a1), 0x33);
 	} else if (!strcmp(op, "srl")) {
-		return encode_r(0x00, reg_num(a3), reg_num(a2), 0x5, reg_num(a1), 0x33);
+		return Encoder::encode_r(0x00, reg_num(a3), reg_num(a2), 0x5, reg_num(a1), 0x33);
 	} else if (!strcmp(op, "sra")) {
-		return encode_r(0x20, reg_num(a3), reg_num(a2), 0x5, reg_num(a1), 0x33);
+		return Encoder::encode_r(0x20, reg_num(a3), reg_num(a2), 0x5, reg_num(a1), 0x33);
 	} else if (!strcmp(op, "or")) {
-		return encode_r(0x00, reg_num(a3), reg_num(a2), 0x6, reg_num(a1), 0x33);
+		return Encoder::encode_r(0x00, reg_num(a3), reg_num(a2), 0x6, reg_num(a1), 0x33);
 	} else if (!strcmp(op, "and")) {
-		return encode_r(0x00, reg_num(a3), reg_num(a2), 0x7, reg_num(a1), 0x33);
+		return Encoder::encode_r(0x00, reg_num(a3), reg_num(a2), 0x7, reg_num(a1), 0x33);
 	} else if (!strcmp(op, "addi")) {
-		return encode_i(parse_imm(state, a3), reg_num(a2), 0x0, reg_num(a1), 0x13);
+		return Encoder::encode_i(parse_imm(a3), reg_num(a2), 0x0, reg_num(a1), 0x13);
 	} else if (!strcmp(op, "slti")) {
-		return encode_i(parse_imm(state, a3), reg_num(a2), 0x2, reg_num(a1), 0x13);
+		return Encoder::encode_i(parse_imm(a3), reg_num(a2), 0x2, reg_num(a1), 0x13);
 	} else if (!strcmp(op, "sltiu")) {
-		return encode_i(parse_imm(state, a3), reg_num(a2), 0x3, reg_num(a1), 0x13);
+		return Encoder::encode_i(parse_imm(a3), reg_num(a2), 0x3, reg_num(a1), 0x13);
 	} else if (!strcmp(op, "xori")) {
-		return encode_i(parse_imm(state, a3), reg_num(a2), 0x4, reg_num(a1), 0x13);
+		return Encoder::encode_i(parse_imm(a3), reg_num(a2), 0x4, reg_num(a1), 0x13);
 	} else if (!strcmp(op, "ori")) {
-		return encode_i(parse_imm(state, a3), reg_num(a2), 0x6, reg_num(a1), 0x13);
+		return Encoder::encode_i(parse_imm(a3), reg_num(a2), 0x6, reg_num(a1), 0x13);
 	} else if (!strcmp(op, "andi")) {
-		return encode_i(parse_imm(state, a3), reg_num(a2), 0x7, reg_num(a1), 0x13);
+		return Encoder::encode_i(parse_imm(a3), reg_num(a2), 0x7, reg_num(a1), 0x13);
 	} else if (!strcmp(op, "slli")) {
-		return encode_r(0x00, parse_imm(state, a3) & 0x1F, reg_num(a2), 0x1, reg_num(a1), 0x13);
+		return Encoder::encode_r(0x00, parse_imm(a3) & 0x1F, reg_num(a2), 0x1, reg_num(a1), 0x13);
 	} else if (!strcmp(op, "srli")) {
-		return encode_r(0x00, parse_imm(state, a3) & 0x1F, reg_num(a2), 0x5, reg_num(a1), 0x13);
+		return Encoder::encode_r(0x00, parse_imm(a3) & 0x1F, reg_num(a2), 0x5, reg_num(a1), 0x13);
 	} else if (!strcmp(op, "srai")) {
-		return encode_r(0x20, parse_imm(state, a3) & 0x1F, reg_num(a2), 0x5, reg_num(a1), 0x13);
+		return Encoder::encode_r(0x20, parse_imm(a3) & 0x1F, reg_num(a2), 0x5, reg_num(a1), 0x13);
 	} else if (!strcmp(op, "lb")) {
-		return encode_i(parse_imm(state, a2), reg_num(a3), 0x0, reg_num(a1), 0x03);
+		return Encoder::encode_i(parse_imm(a2), reg_num(a3), 0x0, reg_num(a1), 0x03);
 	} else if (!strcmp(op, "lh")) {
-		return encode_i(parse_imm(state, a2), reg_num(a3), 0x1, reg_num(a1), 0x03);
+		return Encoder::encode_i(parse_imm(a2), reg_num(a3), 0x1, reg_num(a1), 0x03);
 	} else if (!strcmp(op, "lw")) {
-		return encode_i(parse_imm(state, a2), reg_num(a3), 0x2, reg_num(a1), 0x03);
+		return Encoder::encode_i(parse_imm(a2), reg_num(a3), 0x2, reg_num(a1), 0x03);
 	} else if (!strcmp(op, "lbu")) {
-		return encode_i(parse_imm(state, a2), reg_num(a3), 0x4, reg_num(a1), 0x03);
+		return Encoder::encode_i(parse_imm(a2), reg_num(a3), 0x4, reg_num(a1), 0x03);
 	} else if (!strcmp(op, "lhu")) {
-		return encode_i(parse_imm(state, a2), reg_num(a3), 0x5, reg_num(a1), 0x03);
+		return Encoder::encode_i(parse_imm(a2), reg_num(a3), 0x5, reg_num(a1), 0x03);
 	} else if (!strcmp(op, "sb")) {
-		return encode_s(parse_imm(state, a2), reg_num(a1), reg_num(a3), 0x0, 0x23);
+		return Encoder::encode_s(parse_imm(a2), reg_num(a1), reg_num(a3), 0x0, 0x23);
 	} else if (!strcmp(op, "sh")) {
-		return encode_s(parse_imm(state, a2), reg_num(a1), reg_num(a3), 0x1, 0x23);
+		return Encoder::encode_s(parse_imm(a2), reg_num(a1), reg_num(a3), 0x1, 0x23);
 	} else if (!strcmp(op, "sw")) {
-		return encode_s(parse_imm(state, a2), reg_num(a1), reg_num(a3), 0x2, 0x23);
+		return Encoder::encode_s(parse_imm(a2), reg_num(a1), reg_num(a3), 0x2, 0x23);
 	} else if (!strcmp(op, "beq")) {
-		int32_t target = parse_imm(state, a3);
+		int32_t target = parse_imm(a3);
 		int32_t offset = target - current_pc;
-		return encode_b(offset, reg_num(a2), reg_num(a1), 0x0, 0x63);
+		return Encoder::encode_b(offset, reg_num(a2), reg_num(a1), 0x0, 0x63);
 	} else if (!strcmp(op, "bne")) {
-		int32_t target = parse_imm(state, a3);
+		int32_t target = parse_imm(a3);
 		int32_t offset = target - current_pc;
-		return encode_b(offset, reg_num(a2), reg_num(a1), 0x1, 0x63);
+		return Encoder::encode_b(offset, reg_num(a2), reg_num(a1), 0x1, 0x63);
 	} else if (!strcmp(op, "blt")) {
-		int32_t target = parse_imm(state, a3);
+		int32_t target = parse_imm(a3);
 		int32_t offset = target - current_pc;
-		return encode_b(offset, reg_num(a2), reg_num(a1), 0x4, 0x63);
+		return Encoder::encode_b(offset, reg_num(a2), reg_num(a1), 0x4, 0x63);
 	} else if (!strcmp(op, "bge")) {
-		int32_t target = parse_imm(state, a3);
+		int32_t target = parse_imm(a3);
 		int32_t offset = target - current_pc;
-		return encode_b(offset, reg_num(a2), reg_num(a1), 0x5, 0x63);
+		return Encoder::encode_b(offset, reg_num(a2), reg_num(a1), 0x5, 0x63);
 	} else if (!strcmp(op, "bltu")) {
-		int32_t target = parse_imm(state, a3);
+		int32_t target = parse_imm(a3);
 		int32_t offset = target - current_pc;
-		return encode_b(offset, reg_num(a2), reg_num(a1), 0x6, 0x63);
+		return Encoder::encode_b(offset, reg_num(a2), reg_num(a1), 0x6, 0x63);
 	} else if (!strcmp(op, "bgeu")) {
-		int32_t target = parse_imm(state, a3);
+		int32_t target = parse_imm(a3);
 		int32_t offset = target - current_pc;
-		return encode_b(offset, reg_num(a2), reg_num(a1), 0x7, 0x63);
+		return Encoder::encode_b(offset, reg_num(a2), reg_num(a1), 0x7, 0x63);
 	} else if (!strcmp(op, "jal")) {
-		int32_t target = parse_imm(state, a2);
+		int32_t target = parse_imm(a2);
 		int32_t offset = target - current_pc;
-		return encode_j(offset, reg_num(a1), 0x6F);
+		return Encoder::encode_j(offset, reg_num(a1), 0x6F);
 	} else if (!strcmp(op, "jalr")) {
-		return encode_i(parse_imm(state, a3), reg_num(a2), 0x0, reg_num(a1), 0x67);
+		return Encoder::encode_i(parse_imm(a3), reg_num(a2), 0x0, reg_num(a1), 0x67);
 	} else if (!strcmp(op, "lui")) {
-		return encode_u(parse_imm(state, a2), reg_num(a1), 0x37);
+		return Encoder::encode_u(parse_imm(a2), reg_num(a1), 0x37);
 	} else if (!strcmp(op, "auipc")) {
-		return encode_u(parse_imm(state, a2), reg_num(a1), 0x17);
+		return Encoder::encode_u(parse_imm(a2), reg_num(a1), 0x17);
 	} else if (!strcmp(op, "ecall")) {
-		return encode_i(0x000, 0x00, 0x0, 0x00, 0x73);
+		return Encoder::encode_i(0x000, 0x00, 0x0, 0x00, 0x73);
 	} else if (!strcmp(op, "ebreak")) {
-		return encode_i(0x001, 0x00, 0x0, 0x00, 0x73);
+		return Encoder::encode_i(0x001, 0x00, 0x0, 0x00, 0x73);
 	}
 
 	fprintf(stderr, "Unknown instruction: %s\n", op);
 	exit(1);
 }
 
-static void parse_instruction_args(const char *s, char *op, char *a1, char *a2, char *a3) {
-	/* Create a mutable copy for parsing */
+void Assembler::parse_instruction_args(const char *s, char *op, char *a1, char *a2, char *a3) const {
 	char temp[MAX_LINE];
 	strncpy(temp, s, MAX_LINE - 1);
 	temp[MAX_LINE - 1] = '\0';
@@ -156,7 +154,7 @@ static void parse_instruction_args(const char *s, char *op, char *a1, char *a2, 
 	}
 }
 
-static void process_data_directive(FILE *out, const assembler_state_t *state, char *s, uint32_t *pc) {
+void Assembler::process_data_directive(FILE *out, char *s, uint32_t *pc) const {
 	s = trim(s);
 
 	if (!strncmp(s, ".ascii", 6)) {
@@ -199,7 +197,7 @@ static void process_data_directive(FILE *out, const assembler_state_t *state, ch
 		char *ptr = s + 5;
 		while (*ptr) {
 			if (*ptr != ' ' && *ptr != '\t' && *ptr != ',') {
-				int32_t val = parse_imm(state, ptr);
+				int32_t val = parse_imm(ptr);
 				ptr += strspn(ptr, "0123456789abcdefABCDEFxX-+");
 				uint16_t h = val & 0xFFFF;
 				fwrite(&h, 2, 1, out);
@@ -212,7 +210,7 @@ static void process_data_directive(FILE *out, const assembler_state_t *state, ch
 		char *ptr = s + 5;
 		while (*ptr) {
 			if (*ptr != ' ' && *ptr != '\t' && *ptr != ',') {
-				int32_t val = parse_imm(state, ptr);
+				int32_t val = parse_imm(ptr);
 				ptr += strspn(ptr, "0123456789abcdefABCDEFxX-+");
 				fwrite(&val, 4, 1, out);
 				(*pc) += 4;
@@ -247,14 +245,11 @@ static void debug_parsing(const char *original_line, const char *op, const char 
 	fprintf(stderr, "\t\ta3:  '%s'\n", a3);
 }
 
-
-static void process_instruction_second_pass(FILE *out, const assembler_state_t *state, uint32_t *pc, const char *s) {
-	// Guardar a linha original para debug
+void Assembler::process_instruction_second_pass(FILE *out, uint32_t *pc, const char *s) const {
 	char original_line[MAX_LINE];
 	strncpy(original_line, s, MAX_LINE - 1);
 	original_line[MAX_LINE - 1] = '\0';
 
-	// Primeiro, remover comentários
 	char line_copy[MAX_LINE];
 	strncpy(line_copy, s, MAX_LINE - 1);
 	line_copy[MAX_LINE - 1] = '\0';
@@ -266,43 +261,34 @@ static void process_instruction_second_pass(FILE *out, const assembler_state_t *
 
 	char *line_ptr = trim(line_copy);
 
-	// Processar sintaxe de memória: converter offset(reg) para offset, reg
 	char processed_line[MAX_LINE];
 	strcpy(processed_line, line_ptr);
 
-	// Encontrar parênteses para sintaxe de memória (ex: 0(t1), 4(sp))
 	char *open_paren = strchr(processed_line, '(');
 	if (open_paren) {
 		char *close_paren = strchr(open_paren, ')');
 		if (close_paren) {
-			// Extrair o offset (números antes do '(')
 			char *offset_start = open_paren;
 			while (offset_start > processed_line && !isspace(*(offset_start-1)) && *(offset_start-1) != ',') {
 				offset_start--;
 			}
 
-			// Copiar offset
 			char offset[32] = "";
 			strncpy(offset, offset_start, open_paren - offset_start);
 			offset[open_paren - offset_start] = '\0';
 
-			// Extrair registrador entre parênteses
 			char reg[32] = "";
 			strncpy(reg, open_paren + 1, close_paren - (open_paren + 1));
 			reg[close_paren - (open_paren + 1)] = '\0';
 
-			// Substituir a parte "offset(reg)" por "offset,reg" na string
 			char temp[MAX_LINE];
 
-			// Parte antes do offset
 			strncpy(temp, processed_line, offset_start - processed_line);
 			temp[offset_start - processed_line] = '\0';
 
-			// Adicionar offset e registrador separados por vírgula
 			char suffix[MAX_LINE];
 			strcpy(suffix, close_paren + 1);
 
-			/* FIXED: Use safe_snprintf instead of snprintf */
 			safe_snprintf(processed_line, MAX_LINE, "%s%s,%s%s",
 					temp, offset, reg, suffix);
 		}
@@ -318,7 +304,6 @@ static void process_instruction_second_pass(FILE *out, const assembler_state_t *
 	trim(a2);
 	trim(a3);
 
-	// Remover vírgulas finais se existirem
 	if (a1[0] && a1[strlen(a1)-1] == ',') {
 		a1[strlen(a1)-1] = '\0';
 		trim(a1);
@@ -328,12 +313,11 @@ static void process_instruction_second_pass(FILE *out, const assembler_state_t *
 		trim(a2);
 	}
 
-	// Debug do parsing
 	debug_parsing(original_line, op, a1, a2, a3);
 
 	if (is_pseudoinstruction(op)) {
 		char expanded[2][MAX_LINE];
-		int count = expand_pseudoinstruction(op, a1, a2, state, expanded, *pc);
+		int count = expand_pseudoinstruction(op, a1, a2, expanded, *pc);
 
 		fprintf(stderr, "\tPseudo-instruction expanded to %d instruction(s):\n", count);
 		for (int i = 0; i < count; i++) {
@@ -343,11 +327,9 @@ static void process_instruction_second_pass(FILE *out, const assembler_state_t *
 		for (int i = 0; i < count; i++) {
 			char exp_op[16], exp_a1[32], exp_a2[32], exp_a3[32];
 
-			// Processar cada instrução expandida
 			char exp_line[MAX_LINE];
 			strcpy(exp_line, expanded[i]);
 
-			// Remover comentários das instruções expandidas também
 			comment = strchr(exp_line, '#');
 			if (comment) {
 				*comment = '\0';
@@ -365,22 +347,22 @@ static void process_instruction_second_pass(FILE *out, const assembler_state_t *
 			fprintf(stderr, "\t\ta2:  '%s'\n", exp_a2);
 			fprintf(stderr, "\t\ta3:  '%s'\n", exp_a3);
 
-			uint32_t instr = encode_instruction(state, *pc, exp_op, exp_a1, exp_a2, exp_a3);
+			uint32_t instr = encode_instruction(*pc, exp_op, exp_a1, exp_a2, exp_a3);
 			fwrite(&instr, 4, 1, out);
 			*pc += 4;
 		}
 	} else {
-		uint32_t instr = encode_instruction(state, *pc, op, a1, a2, a3);
+		uint32_t instr = encode_instruction(*pc, op, a1, a2, a3);
 		fwrite(&instr, 4, 1, out);
 		*pc += 4;
 	}
 }
 
-void second_pass(FILE *in, FILE *out, const assembler_state_t *state) {
+void Assembler::second_pass(FILE *in, FILE *out) {
 	char line[MAX_LINE];
-	section_t current_section = SEC_TEXT;
+	Section current_section = SEC_TEXT;
 	uint32_t pc = 0;
-	uint32_t data_base = state->pc_text;
+	uint32_t data_base = pc_text;
 
 	rewind(in);
 
@@ -421,13 +403,13 @@ void second_pass(FILE *in, FILE *out, const assembler_state_t *state) {
 
 		if (*s == '.') {
 			if (current_section == SEC_DATA) {
-				process_data_directive(out, state, s, &pc);
+				process_data_directive(out, s, &pc);
 			}
 			continue;
 		}
 
 		if (current_section == SEC_TEXT) {
-			process_instruction_second_pass(out, state, &pc, s);
+			process_instruction_second_pass(out, &pc, s);
 		}
 	}
 }
