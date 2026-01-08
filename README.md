@@ -2,6 +2,8 @@
 
 Educational toolkit for learning RISC-V: assembler and emulator in modern C++.
 
+> **Just want to get started?** See [QUICKSTART.md](QUICKSTART.md) for immediate usage instructions.
+
 ## Overview
 
 Two complementary tools for RISC-V assembly programming:
@@ -103,9 +105,11 @@ Both tools implement the complete RV32I base (32 instructions).
 
 ---
 
-## Quick Reference
+## Technical Reference
 
-### Supported Instructions (RV32I)
+For usage examples and quick command reference, see [QUICKSTART.md](QUICKSTART.md).
+
+### Instruction Set (RV32I)
 
 | Type | Instructions |
 |------|-------------|
@@ -190,43 +194,199 @@ The assembler automatically determines section types based on their names (e.g.,
 
 ## Getting Started
 
-### Prerequisites
+For quick setup and usage examples, see [QUICKSTART.md](QUICKSTART.md).
 
-- G++ with C++17 support (GCC 7+)
-- GNU Make
-- Linux (for syscalls)
+This README focuses on architecture, design decisions, and implementation details.
 
-### Build
+---
 
+## Build System
+
+The project uses GNU Make with a hierarchical build structure. The root Makefile coordinates builds for both the assembler and emulator subdirectories.
+
+### Available Make Targets
+
+#### Build Targets
+
+**`make` or `make all`** (default)
+- Builds both assembler and emulator
+- Compiles all source files with optimizations (-O2)
+- Creates executables: `assembler/riscv_assembler` and `emulator/riscv_emulator`
+- Use this for normal development
+
+**`make assembler`**
+- Builds only the assembler
+- Useful when working exclusively on assembler features
+- Faster than full build
+
+**`make emulator`**
+- Builds only the emulator
+- Useful when working exclusively on emulator features
+- Faster than full build
+
+**`make debug`**
+- Builds both tools with debug symbols
+- Disables optimizations (-O0)
+- Enables debug macro (-DDEBUG)
+- Use with GDB for debugging: `gdb ./assembler/riscv_assembler`
+- Performs clean build automatically
+
+**`make release`**
+- Builds optimized release versions
+- Maximum optimization (-O3)
+- Defines NDEBUG to remove assertions
+- Use for production or performance testing
+- Performs clean build automatically
+
+#### Clean Targets
+
+**`make clean`**
+- Removes object files (*.o) from all directories
+- Keeps executables intact
+- Allows fast incremental rebuilds
+- Use between minor code changes
+- Example: Modify one source file, `make clean && make` to rebuild quickly
+
+**`make clean-all`**
+- Removes everything including executables
+- Deletes all .o files, test executables, and main executables
+- Ensures completely fresh build
+- Use when switching build configurations or troubleshooting
+- Use before commits to verify clean build
+
+#### Test Targets
+
+**`make test`**
+- Runs all unit tests (assembler + emulator)
+- Builds test executables if needed
+- Executes 10 assembler tests and 12 emulator tests
+- Returns non-zero exit code on any failure
+- Use in CI/CD pipelines
+
+**`make test-assembler`**
+- Runs only assembler unit tests
+- Tests label resolution, encoding, directives
+- 10 test suites covering all instruction formats
+
+**`make test-emulator`**
+- Runs only emulator unit tests
+- Tests CPU, memory, instruction execution
+- 12 test suites including syscall handling
+
+**`make unit-tests`**
+- Alias for `make test`
+- Provided for compatibility
+
+#### Code Quality Targets
+
+**`make format`**
+- Formats all C++ source and header files
+- Requires clang-format to be installed
+- Applies consistent style across codebase
+- Safe to run anytime (non-destructive)
+- Uses project's clang-format configuration
+
+**`make analyze`**
+- Runs static analysis on all source files
+- Requires cppcheck to be installed
+- Checks for potential bugs, memory leaks, style issues
+- Useful before committing code
+- Note: May report false positives
+
+#### Help Target
+
+**`make help`**
+- Displays all available targets with descriptions
+- Shows usage examples
+- Lists project structure
+- Run when exploring the build system
+
+### Build System Architecture
+
+**Hierarchical Structure**:
+- Root `Makefile` coordinates high-level targets
+- `assembler/Makefile` handles assembler-specific builds
+- `emulator/Makefile` handles emulator-specific builds
+- Each subdirectory can be built independently
+
+**Compilation Flags**:
+- `-Wall -Wextra -Werror`: All warnings enabled, treated as errors
+- `-std=c++17`: Modern C++ standard
+- `-O2`: Moderate optimization (default)
+- `-g`: Debug symbols included even in optimized builds
+
+**Dependency Tracking**:
+- Automatic recompilation when headers change
+- Pattern rules for .cpp → .o compilation
+- Explicit dependencies for complex modules
+
+**Parallel Builds**:
 ```bash
-make
+make -j4        # Build with 4 parallel jobs
+make -j$(nproc) # Use all available CPU cores
 ```
 
-### Usage
+### Common Workflows
 
-Assemble:
+**Development Cycle**:
 ```bash
-./assembler/riscv_assembler program.s program.bin
+make clean      # Remove old object files
+make -j4        # Fast parallel build
+make test       # Verify correctness
 ```
 
-Assemble with debug output:
+**Before Committing**:
 ```bash
-./assembler/riscv_assembler --debug program.s program.bin
+make clean-all  # Complete clean
+make            # Verify clean build works
+make test       # Verify all tests pass
+make format     # Ensure consistent formatting
+make analyze    # Check for issues
 ```
 
-Run:
+**Debugging Build Issues**:
 ```bash
-./emulator/riscv_emulator program.bin [load_address]
+make clean-all  # Start completely fresh
+make V=1        # Verbose output (if supported)
+make assembler  # Build one component at a time
+make emulator
 ```
 
-Run with debug tracing:
+**Performance Testing**:
 ```bash
-./emulator/riscv_emulator --debug program.bin
+make release    # Build optimized version
+time ./emulator/riscv_emulator program.bin
 ```
 
-Test:
+**Working on Single Component**:
 ```bash
-./unit_tests.sh
+cd assembler/   # Enter subdirectory
+make            # Build just assembler
+make test       # Test just assembler
+make clean      # Clean just assembler
+```
+
+### Subdirectory Makefiles
+
+Each subdirectory (assembler/, emulator/) has its own Makefile with similar targets:
+
+- `make` or `make all` - Build main executable
+- `make test` - Build and run tests
+- `make clean` - Remove all build artifacts including executables
+- `make clean-soft` - Remove only object files (keep executables)
+- `make run PROGRAM=file` - Build and run with specific input
+- `make format` - Format code
+- `make analyze` - Static analysis
+- `make debug` - Debug build
+- `make release` - Release build
+
+**Subdirectory-specific examples**:
+```bash
+cd assembler/
+make run PROGRAM=test.s              # Assemble test.s to output.bin
+
+cd emulator/
+make run PROGRAM=output.bin          # Run output.bin
 ```
 
 ---
@@ -442,6 +602,10 @@ Contributions welcome! Especially:
 - Performance improvements that maintain clarity
 
 Open an issue before major changes.
+
+**Documentation Structure**:
+- [QUICKSTART.md](QUICKSTART.md) - Getting started, usage, examples
+- [README.md](README.md) - Architecture, design decisions, implementation
 
 ---
 
