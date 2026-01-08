@@ -139,12 +139,49 @@ Unimplemented syscalls return -ENOSYS.
 |-----------|-------------|---------|
 | `.text` | Switch to code section | `.text` |
 | `.data` | Switch to data section | `.data` |
+| `.rodata` | Switch to read-only data section | `.rodata` |
+| `.bss` | Switch to uninitialized data section | `.bss` |
+| `.section <name>` | Switch to arbitrary section (GAS-compatible) | `.section .text.startup` |
 | `.ascii` | Store ASCII string | `.ascii "hello"` |
 | `.asciiz` | Store null-terminated string | `.asciiz "world"` |
 | `.byte` | Store 8-bit value(s) | `.byte 42, 0x2A` |
 | `.half` | Store 16-bit value(s) | `.half 1000` |
 | `.word` | Store 32-bit value(s) | `.word 0x12345678` |
 | `.space` | Reserve N bytes | `.space 100` |
+
+#### Section Directive Support
+
+The assembler now supports full GNU Assembler (GAS) compatible `.section` directives, allowing you to specify arbitrary section names. This is essential for compatibility with standard RISC-V toolchains and linker scripts.
+
+**Standard sections:**
+- `.text` - Executable code section
+- `.data` - Initialized data section
+- `.rodata` - Read-only data section (constants, strings)
+- `.bss` - Uninitialized data section (zero-initialized)
+
+**Custom subsections:**
+You can create custom subsections with any name, following GAS conventions:
+- `.text.startup` - Startup/initialization code
+- `.text.hot` - Hot/frequently executed code
+- `.data.local` - Local data
+- Any custom name like `.section .my_section`
+
+**Example:**
+```assembly
+.section .text
+main:
+    addi x1, x0, 1
+
+.section .rodata
+constant:
+    .word 42
+
+.section .text.startup
+_init:
+    addi x2, x0, 2
+```
+
+The assembler automatically determines section types based on their names (e.g., `.text.*` sections are treated as code sections, `.data.*` as data sections).
 
 ---
 

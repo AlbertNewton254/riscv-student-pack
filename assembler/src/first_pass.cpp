@@ -97,9 +97,16 @@ void Assembler::process_instruction_first_pass(const char *s) {
 
 	int pseudo_size = pseudoinstruction_size(op, a2);
 	if (pseudo_size > 0) {
-		pc_text += pseudo_size * 4;
+		get_current_section().offset += pseudo_size * 4;
+		/* Keep pc_text for backwards compatibility */
+		if (current_section_name == ".text") {
+			pc_text += pseudo_size * 4;
+		}
 	} else {
-		pc_text += 4;
+		get_current_section().offset += 4;
+		if (current_section_name == ".text") {
+			pc_text += 4;
+		}
 	}
 }
 
@@ -134,13 +141,8 @@ void Assembler::process_label(char *s) {
 
 	Label new_label;
 	new_label.name = trimmed;
-	new_label.section = current_section;
-
-	if (current_section == SEC_TEXT) {
-		new_label.addr = pc_text;
-	} else {
-		new_label.addr = pc_data;
-	}
+	new_label.section_name = current_section_name;
+	new_label.addr = get_current_section().offset;
 
 	labels.push_back(new_label);
 }
@@ -154,7 +156,12 @@ void Assembler::process_directive(char *s) {
 			fprintf(stderr, "Malformed .ascii\n");
 			exit(1);
 		}
-		pc_data += parse_escaped_string(q + 1, NULL);
+		uint32_t size = parse_escaped_string(q + 1, NULL);
+		get_current_section().offset += size;
+		/* Keep pc_data for backwards compatibility */
+		if (current_section_name == ".data") {
+			pc_data += size;
+		}
 
 	} else if (!strncmp(s, ".asciiz", 7)) {
 		char *q = strchr(s, '"');
@@ -162,7 +169,11 @@ void Assembler::process_directive(char *s) {
 			fprintf(stderr, "Malformed .asciiz\n");
 			exit(1);
 		}
-		pc_data += parse_escaped_string(q + 1, NULL) + 1;
+		uint32_t size = parse_escaped_string(q + 1, NULL) + 1;
+		get_current_section().offset += size;
+		if (current_section_name == ".data") {
+			pc_data += size;
+		}
 
 	} else if (!strncmp(s, ".byte", 5)) {
 		char *ptr = s + 5;
@@ -174,7 +185,10 @@ void Assembler::process_directive(char *s) {
 			}
 			if (*ptr) ptr++;
 		}
-		pc_data += count;
+		get_current_section().offset += count;
+		if (current_section_name == ".data") {
+			pc_data += count;
+		}
 
 	} else if (!strncmp(s, ".half", 5)) {
 		char *ptr = s + 5;
@@ -186,7 +200,10 @@ void Assembler::process_directive(char *s) {
 			}
 			if (*ptr) ptr++;
 		}
-		pc_data += count * 2;
+		get_current_section().offset += count * 2;
+		if (current_section_name == ".data") {
+			pc_data += count * 2;
+		}
 
 	} else if (!strcmp(s, ".word") || !strncmp(s, ".word", 5)) {
 		char *ptr = s + 5;
@@ -198,12 +215,19 @@ void Assembler::process_directive(char *s) {
 			}
 			if (*ptr) ptr++;
 		}
-		pc_data += count * 4;
+		get_current_section().offset += count * 4;
+		if (current_section_name == ".data") {
+			pc_data += count * 4;
+		}
 
 	} else if (!strncmp(s, ".space", 6)) {
 		int size;
-		if (sscanf(s + 6, "%d", &size) == 1)
-			pc_data += size;
+		if (sscanf(s + 6, "%d", &size) == 1) {
+			get_current_section().offset += size;
+			if (current_section_name == ".data") {
+				pc_data += size;
+			}
+		}
 	}
 }
 
@@ -213,7 +237,6 @@ void Assembler::first_pass(FILE *f) {
 	labels.clear();
 	pc_text = 0;
 	pc_data = 0;
-	current_section = SEC_TEXT;
 
 	while (fgets(line, sizeof(line), f)) {
 		line[MAX_LINE - 1] = '\0';
@@ -221,13 +244,46 @@ void Assembler::first_pass(FILE *f) {
 		char *s = trim(line);
 		if (*s == 0 || *s == '#') continue;
 
+		/* Handle .section directive with optional arguments */
+		if (!strncmp(s, ".section", 8)) {
+			char *section_start = s + 8;
+			while (*section_start && isspace(*section_start)) section_start++;
+
+			/* Extract section name (until comma, space, or end of line) */
+			char section_name[64] = "";
+			int i = 0;
+			while (section_start[i] && !isspace(section_start[i]) &&
+			       section_start[i] != ',' && i < 63) {
+				section_name[i] = section_start[i];
+				i++;
+			}
+			section_name[i] = '\0';
+
+			if (section_name[0]) {
+				switch_section(section_name);
+			}
+			continue;
+		}
+
+		/* Handle legacy .text and .data directives */
 		if (!strcmp(s, ".text")) {
-			current_section = SEC_TEXT;
+			switch_section(".text");
 			continue;
 		}
 
 		if (!strcmp(s, ".data")) {
-			current_section = SEC_DATA;
+			switch_section(".data");
+			continue;
+		}
+
+		/* Handle .rodata and .bss directives */
+		if (!strcmp(s, ".rodata")) {
+			switch_section(".rodata");
+			continue;
+		}
+
+		if (!strcmp(s, ".bss")) {
+			switch_section(".bss");
 			continue;
 		}
 
@@ -243,7 +299,8 @@ void Assembler::first_pass(FILE *f) {
 				after_colon++;
 			}
 			if (*after_colon && *after_colon != '#') {
-				if (current_section == SEC_TEXT) {
+				SectionType sec_type = get_current_section().type;
+				if (sec_type == SEC_TEXT) {
 					process_instruction_first_pass(after_colon);
 				} else if (*after_colon == '.') {
 					process_directive(after_colon);
@@ -257,7 +314,8 @@ void Assembler::first_pass(FILE *f) {
 			continue;
 		}
 
-		if (current_section == SEC_TEXT) {
+		SectionType sec_type = get_current_section().type;
+		if (sec_type == SEC_TEXT) {
 			process_instruction_first_pass(s);
 		}
 	}

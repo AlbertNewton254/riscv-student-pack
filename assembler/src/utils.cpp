@@ -119,3 +119,37 @@ size_t Assembler::parse_escaped_string(const char *src, uint8_t *out) {
 
 	return count;
 }
+
+void Assembler::switch_section(const std::string& section_name) {
+	current_section_name = section_name;
+
+	/* Create section if it doesn't exist */
+	if (sections.find(section_name) == sections.end()) {
+		SectionType type = get_section_type(section_name);
+		sections[section_name] = SectionInfo(section_name, type);
+	}
+}
+
+SectionInfo& Assembler::get_current_section() {
+	if (sections.find(current_section_name) == sections.end()) {
+		sections[current_section_name] = SectionInfo(current_section_name, SEC_CUSTOM);
+	}
+	return sections[current_section_name];
+}
+
+const SectionInfo& Assembler::get_current_section() const {
+	static const SectionInfo default_section;
+	auto it = sections.find(current_section_name);
+	if (it == sections.end()) {
+		return default_section;
+	}
+	return it->second;
+}
+
+SectionType Assembler::get_section_type(const std::string& name) const {
+	if (name == ".text" || name.find(".text.") == 0) return SEC_TEXT;
+	if (name == ".data" || name.find(".data.") == 0) return SEC_DATA;
+	if (name == ".rodata" || name.find(".rodata.") == 0) return SEC_RODATA;
+	if (name == ".bss" || name.find(".bss.") == 0) return SEC_BSS;
+	return SEC_CUSTOM;
+}

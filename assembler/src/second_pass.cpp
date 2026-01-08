@@ -360,7 +360,7 @@ void Assembler::process_instruction_second_pass(FILE *out, uint32_t *pc, const c
 
 void Assembler::second_pass(FILE *in, FILE *out) {
 	char line[MAX_LINE];
-	Section current_section = SEC_TEXT;
+	std::string current_section_name = ".text";
 	uint32_t pc = 0;
 	uint32_t data_base = pc_text;
 
@@ -370,17 +370,63 @@ void Assembler::second_pass(FILE *in, FILE *out) {
 		char *s = trim(line);
 		if (*s == 0 || *s == '#') continue;
 
+		/* Handle .section directive */
+		if (!strncmp(s, ".section", 8)) {
+			char *section_start = s + 8;
+			while (*section_start && isspace(*section_start)) section_start++;
+
+			char section_name[64] = "";
+			int i = 0;
+			while (section_start[i] && !isspace(section_start[i]) &&
+			       section_start[i] != ',' && i < 63) {
+				section_name[i] = section_start[i];
+				i++;
+			}
+			section_name[i] = '\0';
+
+			if (section_name[0]) {
+				current_section_name = section_name;
+				auto it = sections.find(current_section_name);
+				if (it != sections.end()) {
+					pc = it->second.base_addr;
+					fseek(out, pc, SEEK_SET);
+				}
+			}
+			continue;
+		}
+
+		/* Handle legacy directives */
 		if (!strcmp(s, ".text")) {
-			current_section = SEC_TEXT;
+			current_section_name = ".text";
 			pc = 0;
 			fseek(out, 0, SEEK_SET);
 			continue;
 		}
 
 		if (!strcmp(s, ".data")) {
-			current_section = SEC_DATA;
+			current_section_name = ".data";
 			pc = data_base;
 			fseek(out, data_base, SEEK_SET);
+			continue;
+		}
+
+		if (!strcmp(s, ".rodata")) {
+			current_section_name = ".rodata";
+			auto it = sections.find(".rodata");
+			if (it != sections.end()) {
+				pc = it->second.base_addr;
+				fseek(out, pc, SEEK_SET);
+			}
+			continue;
+		}
+
+		if (!strcmp(s, ".bss")) {
+			current_section_name = ".bss";
+			auto it = sections.find(".bss");
+			if (it != sections.end()) {
+				pc = it->second.base_addr;
+				fseek(out, pc, SEEK_SET);
+			}
 			continue;
 		}
 
@@ -402,13 +448,23 @@ void Assembler::second_pass(FILE *in, FILE *out) {
 		}
 
 		if (*s == '.') {
-			if (current_section == SEC_DATA) {
+			SectionType sec_type = SEC_DATA;
+			auto it = sections.find(current_section_name);
+			if (it != sections.end()) {
+				sec_type = it->second.type;
+			}
+			if (sec_type != SEC_TEXT) {
 				process_data_directive(out, s, &pc);
 			}
 			continue;
 		}
 
-		if (current_section == SEC_TEXT) {
+		SectionType sec_type = SEC_TEXT;
+		auto it = sections.find(current_section_name);
+		if (it != sections.end()) {
+			sec_type = it->second.type;
+		}
+		if (sec_type == SEC_TEXT) {
 			process_instruction_second_pass(out, &pc, s);
 		}
 	}

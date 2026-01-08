@@ -7,6 +7,7 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <map>
 
 /* Maximum line length for assembly source */
 #define MAX_LINE 512
@@ -29,24 +30,51 @@ using FilePtr = std::unique_ptr<FILE, FileDeleter>;
  * Assembly section types
  *
  * SEC_TEXT: Executable code section
- * SEC_DATA: Data section (constants, strings, etc.)
+ * SEC_DATA: Data section (initialized data)
+ * SEC_RODATA: Read-only data section
+ * SEC_BSS: Uninitialized data section
+ * SEC_CUSTOM: Custom section (name stored separately)
  */
-enum Section {
+enum SectionType {
 	SEC_TEXT,
-	SEC_DATA
+	SEC_DATA,
+	SEC_RODATA,
+	SEC_BSS,
+	SEC_CUSTOM
 };
+
+/*
+ * Section information structure
+ *
+ * name: Section name (e.g., ".text", ".data", ".rodata", ".bss", or custom)
+ * type: Section type (for standard sections)
+ * offset: Current offset/size in this section
+ * base_addr: Base address assigned to section (set during adjust phase)
+ */
+struct SectionInfo {
+	std::string name;
+	SectionType type;
+	uint32_t offset;
+	uint32_t base_addr;
+
+	SectionInfo() : name(".text"), type(SEC_TEXT), offset(0), base_addr(0) {}
+	SectionInfo(const std::string& n, SectionType t) : name(n), type(t), offset(0), base_addr(0) {}
+};
+
+/* Backwards compatibility alias */
+typedef SectionType Section;
 
 /*
  * Label definition structure
  *
  * name: Label identifier
  * addr: Absolute address assigned to label
- * section: Section where label is defined
+ * section_name: Name of section where label is defined
  */
 struct Label {
 	std::string name;
 	uint32_t addr;
-	Section section;
+	std::string section_name;
 };
 
 /*
@@ -140,15 +168,20 @@ public:
 class Assembler {
 private:
 	std::vector<Label> labels;
-	uint32_t pc_text;
-	uint32_t pc_data;
-	Section current_section;
+	std::map<std::string, SectionInfo> sections;
+	std::string current_section_name;
+	uint32_t pc_text;  /* Kept for backwards compatibility */
+	uint32_t pc_data;  /* Kept for backwards compatibility */
 	uint32_t text_size;
 	uint32_t data_size;
 
 	/* Utility functions (private instance methods) */
 	uint32_t find_label(const char *name) const;
 	int32_t parse_imm(const char *s) const;
+	void switch_section(const std::string& section_name);
+	SectionInfo& get_current_section();
+	const SectionInfo& get_current_section() const;
+	SectionType get_section_type(const std::string& name) const;
 
 	/* First pass helpers */
 	int pseudoinstruction_size(const char *op, const char *a2) const;
