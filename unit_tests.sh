@@ -17,7 +17,7 @@ cleanup() {
     for dir in "${BUILD_DIRS[@]}"; do
         make -C "$dir" clean 2>/dev/null || true
     done
-    
+
     # Remove test files
     rm -f *.bin *.s 2>/dev/null || true
     find . -name "*.o" -delete 2>/dev/null || true
@@ -29,7 +29,7 @@ cleanup() {
 # Build project
 build_project() {
     local status=0
-    
+
     for dir in "${BUILD_DIRS[@]}"; do
         echo -e "\n${YELLOW}--- Building $dir ---${NC}"
         if ! make -C "$dir" all; then
@@ -40,14 +40,14 @@ build_project() {
             echo -e "${GREEN}[PASS] $dir build${NC}"
         fi
     done
-    
+
     return $status
 }
 
 # Run unit tests
 run_unit_tests() {
     local status=0
-    
+
     for dir in "${BUILD_DIRS[@]}"; do
         echo -e "\n${YELLOW}--- Running $dir unit tests ---${NC}"
         if ! make -C "$dir" test; then
@@ -57,27 +57,27 @@ run_unit_tests() {
             echo -e "${GREEN}[PASS] $dir unit tests${NC}"
         fi
     done
-    
+
     return $status
 }
 
 # Main execution
 main() {
     echo -e "${YELLOW}=== RISC-V Assembler & Emulator Tests ===${NC}"
-    
+
     # Initial cleanup
     cleanup
-    
+
     # Build project
     if ! build_project; then
         echo -e "\n${RED}Build failed! Cannot run tests.${NC}"
         exit 1
     fi
-    
+
     # Run unit tests
     unit_status=0
     run_unit_tests || unit_status=1
-    
+
     # Final cleanup (keep binaries)
     echo -e "\n${YELLOW}--- Final cleanup (keeping binaries) ---${NC}"
     find . -name "*.o" -delete 2>/dev/null || true
@@ -85,7 +85,7 @@ main() {
         rm -f "$test_exec" 2>/dev/null || true
     done
     rm -f *.bin *.s 2>/dev/null || true
-    
+
     # Summary
     echo -e "\n${YELLOW}=== Summary ===${NC}"
     echo -e "${YELLOW}Binaries preserved:${NC}"
@@ -94,11 +94,10 @@ main() {
             echo "  ./$binary"
         fi
     done
-    
+
     # Overall status
     if [ $unit_status -eq 0 ]; then
         echo -e "\n${GREEN}=== All unit tests passed! ===${NC}"
-        echo -e "${YELLOW}Note: Integration tests were skipped${NC}"
         exit 0
     else
         echo -e "\n${RED}=== Some unit tests failed ===${NC}"
