@@ -16,12 +16,12 @@ uint32_t encode_s(int32_t imm, uint32_t rs2, uint32_t rs1, uint32_t funct3, uint
 /* imm = byte offset */
 uint32_t encode_b(int32_t imm, uint32_t rs2, uint32_t rs1, uint32_t funct3, uint32_t opcode) {
 	uint32_t u = (uint32_t)(imm >> 1);
-	return (((u >> 12) & 0x1) << 31) |
-		(((u >> 5)  & 0x3F) << 25) |
+	return (((u >> 11) & 0x1) << 31) |
+		(((u >> 4)  & 0x3F) << 25) |
 		(rs2 << 20) | (rs1 << 15) |
 		(funct3 << 12) |
-		(((u >> 1) & 0xF) << 8) |
-		(((u >> 11) & 0x1) << 7) |
+		((u & 0xF) << 8) |
+		(((u >> 10) & 0x1) << 7) |
 		opcode;
 }
 
@@ -33,10 +33,10 @@ uint32_t encode_u(int32_t imm, uint32_t rd, uint32_t opcode) {
 uint32_t encode_j(int32_t imm, uint32_t rd, uint32_t opcode) {
 	uint32_t u = (uint32_t)(imm >> 1);
 
-	return (((u >> 20) & 0x1) << 31) |
-		(((u >> 1)  & 0x3FF) << 21) |
-		(((u >> 11) & 0x1) << 20) |
-		(((u >> 12) & 0xFF) << 12) |
+	return (((u >> 19) & 0x1) << 31) |
+		((u  & 0x3FF) << 21) |
+		(((u >> 10) & 0x1) << 20) |
+		(((u >> 11) & 0xFF) << 12) |
 		(rd << 7) |
 		opcode;
 }
