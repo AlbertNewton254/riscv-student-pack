@@ -29,60 +29,96 @@ static int32_t extract_j_imm(uint32_t instruction) {
 	return sign_extend((uint32_t)imm, 21);
 }
 
-cpu_status_t cpu_decode(uint32_t instruction, instruction_t *decoded) {
-	decoded->raw = instruction;
-	decoded->imm = 0;
+bool Instruction::decode(uint32_t instruction) {
+	raw = instruction;
+	imm = 0;
 
-	/** Extract common fields */
-	decoded->opcode = instruction & 0x7F;
-	decoded->rd = (instruction >> 7) & 0x1F;
-	decoded->funct3 = (instruction >> 12) & 0x7;
-	decoded->rs1 = (instruction >> 15) & 0x1F;
-	decoded->rs2 = (instruction >> 20) & 0x1F;
-	decoded->funct7 = (instruction >> 25) & 0x7F;
+	/* Extract common fields */
+	opcode = instruction & 0x7F;
+	rd = (instruction >> 7) & 0x1F;
+	funct3 = (instruction >> 12) & 0x7;
+	rs1 = (instruction >> 15) & 0x1F;
+	rs2 = (instruction >> 20) & 0x1F;
+	funct7 = (instruction >> 25) & 0x7F;
 
-	switch (decoded->opcode) {
-		case 0x33:	/** R-type */
-			decoded->format = INSTR_R_TYPE;
-			decoded->imm = 0;
+	switch (opcode) {
+		case 0x33:	/* R-type */
+			format = INSTR_R_TYPE;
+			imm = 0;
 			break;
 
-		case 0x03:	/** LOAD */
-		case 0x13:	/** OP-IMM */
-		case 0x67:	/** JALR */
-		case 0x73:	/** SYSTEM */
-			decoded->format = INSTR_I_TYPE;
-			decoded->imm = sign_extend((instruction >> 20) & 0xFFF, 12);
+		case 0x03:	/* LOAD */
+		case 0x13:	/* OP-IMM */
+		case 0x67:	/* JALR */
+		case 0x73:	/* SYSTEM */
+			format = INSTR_I_TYPE;
+			imm = sign_extend((instruction >> 20) & 0xFFF, 12);
 			break;
 
-		case 0x23:	/** STORE */
-			decoded->format = INSTR_S_TYPE;
-			decoded->imm = sign_extend(
+		case 0x23:	/* STORE */
+			format = INSTR_S_TYPE;
+			imm = sign_extend(
 				(((instruction >> 25) & 0x7F) << 5) |
 				((instruction >> 7) & 0x1F),
 				12
 			);
 			break;
 
-		case 0x63:	/** BRANCH */
-			decoded->format = INSTR_B_TYPE;
-			decoded->imm = extract_b_imm(instruction);
+		case 0x63:	/* BRANCH */
+			format = INSTR_B_TYPE;
+			imm = extract_b_imm(instruction);
 			break;
 
-		case 0x37:	/** LUI */
-		case 0x17:	/** AUIPC */
-			decoded->format = INSTR_U_TYPE;
-			decoded->imm = (instruction & 0xFFFFF000);
+		case 0x37:	/* LUI */
+		case 0x17:	/* AUIPC */
+			format = INSTR_U_TYPE;
+			imm = (instruction & 0xFFFFF000);
 			break;
 
-		case 0x6F:	/** JAL */
-			decoded->format = INSTR_J_TYPE;
-			decoded->imm = extract_j_imm(instruction);
+		case 0x6F:	/* JAL */
+			format = INSTR_J_TYPE;
+			imm = extract_j_imm(instruction);
 			break;
 
 		default:
-			return CPU_DECODE_ERROR;
+			return false;
 	}
 
-	return CPU_OK;
+	return true;
+}
+
+instr_format_t Instruction::get_format() const {
+	return format;
+}
+
+uint32_t Instruction::get_raw() const {
+	return raw;
+}
+
+int32_t Instruction::get_imm() const {
+	return imm;
+}
+
+uint8_t Instruction::get_opcode() const {
+	return opcode;
+}
+
+uint8_t Instruction::get_rd() const {
+	return rd;
+}
+
+uint8_t Instruction::get_rs1() const {
+	return rs1;
+}
+
+uint8_t Instruction::get_rs2() const {
+	return rs2;
+}
+
+uint8_t Instruction::get_funct3() const {
+	return funct3;
+}
+
+uint8_t Instruction::get_funct7() const {
+	return funct7;
 }

@@ -6,17 +6,6 @@
 #include <memory>
 
 /*
- * Memory instance structure
- *
- * data: Byte-addressable memory array (managed by unique_ptr)
- * size: Total memory size in bytes
- */
-struct memory_t {
-	std::unique_ptr<uint8_t[]> data;
-	uint32_t size;
-};
-
-/*
  * Memory operation status codes
  *
  * MEM_OK: Successful operation
@@ -32,78 +21,97 @@ enum memory_status_t {
 };
 
 /**
- * Initialize memory with given size
+ * Memory class for byte-addressable memory management
  *
- * size: Memory size in bytes
- *
- * Output: unique_ptr to new memory instance, nullptr on failure
+ * Provides aligned and unaligned read/write operations
+ * for 8-bit, 16-bit, and 32-bit values
  */
-std::unique_ptr<memory_t> memory_init(uint32_t size);
+class Memory {
+private:
+	std::unique_ptr<uint8_t[]> data;
+	uint32_t size;
 
-/**
- * Read 8-bit value from memory
- *
- * mem: Memory instance
- * addr: Byte address
- * value: Output for read value
- *
- * Output: Read status
- */
-memory_status_t memory_read8(memory_t *mem, uint32_t addr, uint8_t *value);
+public:
+	/**
+	 * Initialize memory with given size
+	 *
+	 * size: Memory size in bytes
+	 */
+	Memory(uint32_t size);
 
-/**
- * Write 8-bit value to memory
- *
- * mem: Memory instance
- * addr: Byte address
- * value: Value to write
- *
- * Output: Write status
- */
-memory_status_t memory_write8(memory_t *mem, uint32_t addr, uint8_t value);
+	/**
+	 * Get memory size
+	 *
+	 * Output: Memory size in bytes
+	 */
+	uint32_t get_size() const;
 
-/**
- * Read 16-bit value from memory
- *
- * mem: Memory instance
- * addr: Halfword-aligned address (addr % 2 == 0)
- * value: Output for read value
- *
- * Output: Read status
- */
-memory_status_t memory_read16(memory_t *mem, uint32_t addr, uint16_t *value);
+	/**
+	 * Get raw data pointer (for syscalls)
+	 *
+	 * Output: Pointer to memory data
+	 */
+	uint8_t* get_data();
 
-/**
- * Write 16-bit value to memory
- *
- * mem: Memory instance
- * addr: Halfword-aligned address (addr % 2 == 0)
- * value: Value to write
- *
- * Output: Write status
- */
-memory_status_t memory_write16(memory_t *mem, uint32_t addr, uint16_t value);
+	/**
+	 * Read 8-bit value from memory
+	 *
+	 * addr: Byte address
+	 * value: Output for read value
+	 *
+	 * Output: Read status
+	 */
+	memory_status_t read8(uint32_t addr, uint8_t *value);
 
-/**
- * Read 32-bit value from memory
- *
- * mem: Memory instance
- * addr: Word-aligned address (addr % 4 == 0)
- * value: Output for read value
- *
- * Output: Read status
- */
-memory_status_t memory_read32(memory_t *mem, uint32_t addr, uint32_t *value);
+	/**
+	 * Write 8-bit value to memory
+	 *
+	 * addr: Byte address
+	 * value: Value to write
+	 *
+	 * Output: Write status
+	 */
+	memory_status_t write8(uint32_t addr, uint8_t value);
 
-/**
- * Write 32-bit value to memory
- *
- * mem: Memory instance
- * addr: Word-aligned address (addr % 4 == 0)
- * value: Value to write
- *
- * Output: Write status
- */
-memory_status_t memory_write32(memory_t *mem, uint32_t addr, uint32_t value);
+	/**
+	 * Read 16-bit value from memory
+	 *
+	 * addr: Halfword-aligned address (addr % 2 == 0)
+	 * value: Output for read value
+	 *
+	 * Output: Read status
+	 */
+	memory_status_t read16(uint32_t addr, uint16_t *value);
+
+	/**
+	 * Write 16-bit value to memory
+	 *
+	 * addr: Halfword-aligned address (addr % 2 == 0)
+	 * value: Value to write
+	 *
+	 * Output: Write status
+	 */
+	memory_status_t write16(uint32_t addr, uint16_t value);
+
+	/**
+	 * Read 32-bit value from memory
+	 *
+	 * addr: Word-aligned address (addr % 4 == 0)
+	 * value: Output for read value
+	 *
+	 * Output: Read status
+	 */
+	memory_status_t read32(uint32_t addr, uint32_t *value);
+
+	/**
+	 * Write 32-bit value to memory
+	 *
+	 * addr: Word-aligned address (addr % 4 == 0)
+	 * value: Value to write
+	 *
+	 * Output: Write status
+	 */
+	memory_status_t write32(uint32_t addr, uint32_t value);
+};
 
 #endif

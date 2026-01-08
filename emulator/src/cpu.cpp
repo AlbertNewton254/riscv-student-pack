@@ -11,25 +11,54 @@
 #include <cerrno>
 #include <cstring>
 
-std::unique_ptr<cpu_t> cpu_init() {
-	auto cpu = std::make_unique<cpu_t>();
-
+CPU::CPU() {
 	for (int i = 0; i < 32; i++) {
-		cpu->x[i] = 0;
+		x[i] = 0;
 	}
-	cpu->pc = 0;
-	cpu->running = 1;
+	pc = 0;
+	running = 1;
 
-	cpu->x[2] = STACK_TOP;
-
-	return cpu;
+	x[2] = STACK_TOP;
 }
 
-cpu_status_t cpu_fetch(cpu_t *cpu, memory_t *mem, uint32_t *instruction) {
-	memory_status_t status = memory_read32(mem, cpu->pc, instruction);
+int CPU::is_running() const {
+	return running;
+}
+
+uint32_t CPU::get_pc() const {
+	return pc;
+}
+
+void CPU::set_pc(uint32_t value) {
+	pc = value;
+}
+
+uint32_t CPU::get_register(uint8_t reg) const {
+	if (reg >= 32) return 0;
+	return (reg == 0) ? 0 : x[reg];
+}
+
+void CPU::set_register(uint8_t reg, uint32_t value) {
+	if (reg > 0 && reg < 32) {
+		x[reg] = value;
+	}
+}
+
+uint32_t CPU::reg_read(uint8_t reg) {
+	return (reg == 0) ? 0 : x[reg];
+}
+
+void CPU::reg_write(uint8_t reg, uint32_t value) {
+	if (reg != 0) {
+		x[reg] = value;
+	}
+}
+
+cpu_status_t CPU::fetch(Memory *mem, uint32_t *instruction) {
+	memory_status_t status = mem->read32(pc, instruction);
 
 	if (status == MEM_OK) {
-		cpu->pc += 4;
+		pc += 4;
 		return CPU_OK;
 	}
 	else if (status == MEM_MISALIGNED_ERROR) {
@@ -42,25 +71,15 @@ cpu_status_t cpu_fetch(cpu_t *cpu, memory_t *mem, uint32_t *instruction) {
 	return CPU_FETCH_ERROR;
 }
 
-static uint32_t reg_read(cpu_t *cpu, uint8_t reg) {
-	return (reg == 0) ? 0 : cpu->x[reg];
-}
-
-static void reg_write(cpu_t *cpu, uint8_t reg, uint32_t value) {
-	if (reg != 0) {
-		cpu->x[reg] = value;
-	}
-}
-
-static cpu_status_t handle_syscall(cpu_t *cpu, memory_t *mem) {
-	uint32_t syscall_num = cpu->x[17];
-	uint32_t arg1 = cpu->x[10];
-	uint32_t arg2 = cpu->x[11];
-	uint32_t arg3 = cpu->x[12];
+cpu_status_t CPU::handle_syscall(Memory *mem) {
+	uint32_t syscall_num = x[17];
+	uint32_t arg1 = x[10];
+	uint32_t arg2 = x[11];
+	uint32_t arg3 = x[12];
 
 	switch (syscall_num) {
 		case SYS_exit: {
-			cpu->running = 0;
+			running = 0;
 			return CPU_SYSCALL_EXIT;
 		}
 
@@ -69,13 +88,13 @@ static cpu_status_t handle_syscall(cpu_t *cpu, memory_t *mem) {
 			uint32_t buf_addr = arg2;
 			size_t count = (size_t)arg3;
 
-			if (buf_addr + count > mem->size) {
-				cpu->x[10] = -1;
+			if (buf_addr + count > mem->get_size()) {
+				x[10] = -1;
 				break;
 			}
 
-			ssize_t result = write(fd, &mem->data[buf_addr], count);
-			cpu->x[10] = (uint32_t)result;
+			ssize_t result = write(fd, &mem->get_data()[buf_addr], count);
+			x[10] = (uint32_t)result;
 			break;
 		}
 
@@ -84,13 +103,13 @@ static cpu_status_t handle_syscall(cpu_t *cpu, memory_t *mem) {
 			uint32_t buf_addr = arg2;
 			size_t count = (size_t)arg3;
 
-			if (buf_addr + count > mem->size) {
-				cpu->x[10] = -1;
+			if (buf_addr + count > mem->get_size()) {
+				x[10] = -1;
 				break;
 			}
 
-			ssize_t result = read(fd, &mem->data[buf_addr], count);
-			cpu->x[10] = (uint32_t)result;
+			ssize_t result = read(fd, &mem->get_data()[buf_addr], count);
+			x[10] = (uint32_t)result;
 			break;
 		}
 
@@ -102,26 +121,26 @@ static cpu_status_t handle_syscall(cpu_t *cpu, memory_t *mem) {
 			char path[256];
 			int i;
 			for (i = 0; i < (int)sizeof(path) - 1; i++) {
-				if (path_addr + i >= mem->size) break;
-				path[i] = mem->data[path_addr + i];
+				if (path_addr + i >= mem->get_size()) break;
+				path[i] = mem->get_data()[path_addr + i];
 				if (path[i] == '\0') break;
 			}
 			path[i] = '\0';
 
 			int result = open(path, flags, mode);
-			cpu->x[10] = (uint32_t)result;
+			x[10] = (uint32_t)result;
 			break;
 		}
 
 		case SYS_close: {
 			int fd = (int)arg1;
 			int result = close(fd);
-			cpu->x[10] = (uint32_t)result;
+			x[10] = (uint32_t)result;
 			break;
 		}
 
 		case SYS_brk: {
-			cpu->x[10] = -ENOMEM;
+			x[10] = -ENOMEM;
 			break;
 		}
 
@@ -130,55 +149,55 @@ static cpu_status_t handle_syscall(cpu_t *cpu, memory_t *mem) {
 			struct stat st;
 			int result = fstat(fd, &st);
 
-			if (result == 0 && arg2 + sizeof(st) <= mem->size) {
+			if (result == 0 && arg2 + sizeof(st) <= mem->get_size()) {
 				size_t copy_size = sizeof(st) < 64 ? sizeof(st) : 64;
-				std::memcpy(&mem->data[arg2], &st, copy_size);
+				std::memcpy(&mem->get_data()[arg2], &st, copy_size);
 			}
 
-			cpu->x[10] = (uint32_t)result;
+			x[10] = (uint32_t)result;
 			break;
 		}
 
 		default:
-			cpu->x[10] = -ENOSYS;
+			x[10] = -ENOSYS;
 			break;
 	}
 
 	return CPU_OK;
 }
 
-static cpu_status_t execute_load(cpu_t *cpu, memory_t *mem, instruction_t *instr, uint32_t *result) {
-	uint32_t addr = reg_read(cpu, instr->rs1) + instr->imm;
+cpu_status_t CPU::execute_load(Memory *mem, Instruction *instr, uint32_t *result) {
+	uint32_t addr = reg_read(instr->get_rs1()) + instr->get_imm();
 	uint32_t value;
 	memory_status_t status;
 
-	switch (instr->funct3) {
+	switch (instr->get_funct3()) {
 		case 0x0:
-			status = memory_read8(mem, addr, (uint8_t*)&value);
+			status = mem->read8(addr, (uint8_t*)&value);
 			if (status != MEM_OK) return CPU_EXECUTION_ERROR;
 			*result = sign_extend(value & 0xFF, 8);
 			break;
 
 		case 0x1:
-			status = memory_read16(mem, addr, (uint16_t*)&value);
+			status = mem->read16(addr, (uint16_t*)&value);
 			if (status != MEM_OK) return CPU_EXECUTION_ERROR;
 			*result = sign_extend(value & 0xFFFF, 16);
 			break;
 
 		case 0x2:
-			status = memory_read32(mem, addr, &value);
+			status = mem->read32(addr, &value);
 			if (status != MEM_OK) return CPU_EXECUTION_ERROR;
 			*result = value;
 			break;
 
 		case 0x4:
-			status = memory_read8(mem, addr, (uint8_t*)&value);
+			status = mem->read8(addr, (uint8_t*)&value);
 			if (status != MEM_OK) return CPU_EXECUTION_ERROR;
 			*result = value & 0xFF;
 			break;
 
 		case 0x5:
-			status = memory_read16(mem, addr, (uint16_t*)&value);
+			status = mem->read16(addr, (uint16_t*)&value);
 			if (status != MEM_OK) return CPU_EXECUTION_ERROR;
 			*result = value & 0xFFFF;
 			break;
@@ -190,22 +209,22 @@ static cpu_status_t execute_load(cpu_t *cpu, memory_t *mem, instruction_t *instr
 	return CPU_OK;
 }
 
-static cpu_status_t execute_store(cpu_t *cpu, memory_t *mem, instruction_t *instr) {
-	uint32_t addr = reg_read(cpu, instr->rs1) + instr->imm;
-	uint32_t value = reg_read(cpu, instr->rs2);
+cpu_status_t CPU::execute_store(Memory *mem, Instruction *instr) {
+	uint32_t addr = reg_read(instr->get_rs1()) + instr->get_imm();
+	uint32_t value = reg_read(instr->get_rs2());
 	memory_status_t status;
 
-	switch (instr->funct3) {
+	switch (instr->get_funct3()) {
 		case 0x0:
-			status = memory_write8(mem, addr, value & 0xFF);
+			status = mem->write8(addr, value & 0xFF);
 			break;
 
 		case 0x1:
-			status = memory_write16(mem, addr, value & 0xFFFF);
+			status = mem->write16(addr, value & 0xFFFF);
 			break;
 
 		case 0x2:
-			status = memory_write32(mem, addr, value);
+			status = mem->write32(addr, value);
 			break;
 
 		default:
@@ -215,7 +234,7 @@ static cpu_status_t execute_store(cpu_t *cpu, memory_t *mem, instruction_t *inst
 	return (status == MEM_OK) ? CPU_OK : CPU_EXECUTION_ERROR;
 }
 
-static uint32_t execute_alu(uint32_t rs1_val, uint32_t rs2_val_or_imm, uint8_t funct3, uint8_t funct7, bool is_imm) {
+uint32_t CPU::execute_alu(uint32_t rs1_val, uint32_t rs2_val_or_imm, uint8_t funct3, uint8_t funct7, bool is_imm) {
 	switch (funct3) {
 		case 0x0:
 			if (!is_imm && (funct7 & 0x20)) {
@@ -252,12 +271,12 @@ static uint32_t execute_alu(uint32_t rs1_val, uint32_t rs2_val_or_imm, uint8_t f
 	}
 }
 
-static cpu_status_t execute_branch(cpu_t *cpu, instruction_t *instr) {
-	uint32_t rs1_val = reg_read(cpu, instr->rs1);
-	uint32_t rs2_val = reg_read(cpu, instr->rs2);
+cpu_status_t CPU::execute_branch(Instruction *instr) {
+	uint32_t rs1_val = reg_read(instr->get_rs1());
+	uint32_t rs2_val = reg_read(instr->get_rs2());
 	bool take_branch = false;
 
-	switch (instr->funct3) {
+	switch (instr->get_funct3()) {
 		case 0x0:
 			take_branch = (rs1_val == rs2_val);
 			break;
@@ -287,19 +306,19 @@ static cpu_status_t execute_branch(cpu_t *cpu, instruction_t *instr) {
 	}
 
 	if (take_branch) {
-		cpu->pc += instr->imm - 4;
+		pc += instr->get_imm() - 4;
 	}
 
 	return CPU_OK;
 }
 
-static cpu_status_t execute_system(cpu_t *cpu, memory_t *mem, instruction_t *instr) {
-	switch (instr->imm & 0xFFF) {
+cpu_status_t CPU::execute_system(Memory *mem, Instruction *instr) {
+	switch (instr->get_imm() & 0xFFF) {
 		case 0x000:
-			return handle_syscall(cpu, mem);
+			return handle_syscall(mem);
 
 		case 0x001:
-			std::fprintf(stderr, "Breakpoint at PC: 0x%08x\n", cpu->pc - 4);
+			std::fprintf(stderr, "Breakpoint at PC: 0x%08x\n", pc - 4);
 			return CPU_OK;
 
 		default:
@@ -307,41 +326,41 @@ static cpu_status_t execute_system(cpu_t *cpu, memory_t *mem, instruction_t *ins
 	}
 }
 
-cpu_status_t cpu_execute(cpu_t *cpu, memory_t *mem, instruction_t *instr) {
-	switch (instr->format) {
+cpu_status_t CPU::execute(Memory *mem, Instruction *instr) {
+	switch (instr->get_format()) {
 		case INSTR_R_TYPE: {
-			uint32_t rs1_val = reg_read(cpu, instr->rs1);
-			uint32_t rs2_val = reg_read(cpu, instr->rs2);
-			uint32_t result = execute_alu(rs1_val, rs2_val, instr->funct3, instr->funct7, false);
-			reg_write(cpu, instr->rd, result);
+			uint32_t rs1_val = reg_read(instr->get_rs1());
+			uint32_t rs2_val = reg_read(instr->get_rs2());
+			uint32_t result = execute_alu(rs1_val, rs2_val, instr->get_funct3(), instr->get_funct7(), false);
+			reg_write(instr->get_rd(), result);
 			break;
 		}
 
 		case INSTR_I_TYPE: {
-			uint32_t rs1_val = reg_read(cpu, instr->rs1);
+			uint32_t rs1_val = reg_read(instr->get_rs1());
 
-			switch (instr->opcode) {
+			switch (instr->get_opcode()) {
 				case 0x03: {
 					uint32_t result;
-					cpu_status_t status = execute_load(cpu, mem, instr, &result);
+					cpu_status_t status = execute_load(mem, instr, &result);
 					if (status != CPU_OK) return status;
-					reg_write(cpu, instr->rd, result);
+					reg_write(instr->get_rd(), result);
 					break;
 				}
 
 				case 0x13: {
-					uint32_t result = execute_alu(rs1_val, instr->imm, instr->funct3, 0, true);
-					reg_write(cpu, instr->rd, result);
+					uint32_t result = execute_alu(rs1_val, instr->get_imm(), instr->get_funct3(), 0, true);
+					reg_write(instr->get_rd(), result);
 					break;
 				}
 
 				case 0x67:
-					reg_write(cpu, instr->rd, cpu->pc);
-					cpu->pc = (rs1_val + instr->imm) & ~1;
+					reg_write(instr->get_rd(), pc);
+					pc = (rs1_val + instr->get_imm()) & ~1;
 					break;
 
 				case 0x73:
-					return execute_system(cpu, mem, instr);
+					return execute_system(mem, instr);
 
 				default:
 					return CPU_ILLEGAL_INSTRUCTION;
@@ -350,21 +369,21 @@ cpu_status_t cpu_execute(cpu_t *cpu, memory_t *mem, instruction_t *instr) {
 		}
 
 		case INSTR_S_TYPE: {
-			return execute_store(cpu, mem, instr);
+			return execute_store(mem, instr);
 		}
 
 		case INSTR_B_TYPE: {
-			return execute_branch(cpu, instr);
+			return execute_branch(instr);
 		}
 
 		case INSTR_U_TYPE: {
-			switch (instr->opcode) {
+			switch (instr->get_opcode()) {
 				case 0x37:
-					reg_write(cpu, instr->rd, instr->imm);
+					reg_write(instr->get_rd(), instr->get_imm());
 					break;
 
 				case 0x17:
-					reg_write(cpu, instr->rd, cpu->pc + instr->imm - 4);
+					reg_write(instr->get_rd(), pc + instr->get_imm() - 4);
 					break;
 
 				default:
@@ -374,8 +393,8 @@ cpu_status_t cpu_execute(cpu_t *cpu, memory_t *mem, instruction_t *instr) {
 		}
 
 		case INSTR_J_TYPE:
-			reg_write(cpu, instr->rd, cpu->pc);
-			cpu->pc += instr->imm - 4;
+			reg_write(instr->get_rd(), pc);
+			pc += instr->get_imm() - 4;
 			break;
 
 		default:
@@ -385,23 +404,22 @@ cpu_status_t cpu_execute(cpu_t *cpu, memory_t *mem, instruction_t *instr) {
 	return CPU_OK;
 }
 
-cpu_status_t cpu_step(cpu_t *cpu, memory_t *mem) {
-	if (!cpu->running) {
+cpu_status_t CPU::step(Memory *mem) {
+	if (!running) {
 		return CPU_SYSCALL_EXIT;
 	}
 
 	uint32_t raw_instr;
-	instruction_t decoded;
+	Instruction decoded;
 
-	cpu_status_t status = cpu_fetch(cpu, mem, &raw_instr);
+	cpu_status_t status = fetch(mem, &raw_instr);
 	if (status != CPU_OK) {
 		return status;
 	}
 
-	status = cpu_decode(raw_instr, &decoded);
-	if (status != CPU_OK) {
-		return status;
+	if (!decoded.decode(raw_instr)) {
+		return CPU_DECODE_ERROR;
 	}
 
-	return cpu_execute(cpu, mem, &decoded);
+	return execute(mem, &decoded);
 }

@@ -23,30 +23,43 @@ enum instr_format_t {
 	INSTR_J_TYPE
 };
 
-/*
- * Decoded instruction structure
+/**
+ * Decoded instruction class
  *
- * format: Instruction format type
- * raw: Raw 32-bit instruction word
- * imm: Sign-extended immediate value
- * opcode: 7-bit opcode field
- * rd: Destination register field
- * rs1: Source register 1 field
- * rs2: Source register 2 field
- * funct3: 3-bit function field
- * funct7: 7-bit function field
+ * Encapsulates instruction decoding and field access
  */
-struct instruction_t {
+class Instruction {
+private:
 	instr_format_t format;
 	uint32_t raw;
 	int32_t imm;
-
 	uint8_t opcode;
 	uint8_t rd;
 	uint8_t rs1;
 	uint8_t rs2;
 	uint8_t funct3;
 	uint8_t funct7;
+
+public:
+	/**
+	 * Decode raw 32-bit instruction
+	 *
+	 * instruction: Raw 32-bit instruction word
+	 *
+	 * Output: true if successfully decoded, false otherwise
+	 */
+	bool decode(uint32_t instruction);
+
+	/* Getters */
+	instr_format_t get_format() const;
+	uint32_t get_raw() const;
+	int32_t get_imm() const;
+	uint8_t get_opcode() const;
+	uint8_t get_rd() const;
+	uint8_t get_rs1() const;
+	uint8_t get_rs2() const;
+	uint8_t get_funct3() const;
+	uint8_t get_funct7() const;
 };
 
 /**

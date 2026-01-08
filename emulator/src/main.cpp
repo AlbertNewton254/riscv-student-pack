@@ -6,7 +6,7 @@
 #include "cpu.hpp"
 #include "memory.hpp"
 
-static int load_program(memory_t *mem, const char *filename, uint32_t load_address) {
+static int load_program(Memory *mem, const char *filename, uint32_t load_address) {
 	FILE *file = std::fopen(filename, "rb");
 	if (!file) {
 		std::fprintf(stderr, "Error: Cannot open file '%s'\n", filename);
@@ -17,13 +17,13 @@ static int load_program(memory_t *mem, const char *filename, uint32_t load_addre
 	long file_size = std::ftell(file);
 	std::fseek(file, 0, SEEK_SET);
 
-	if (load_address + file_size > mem->size) {
+	if (load_address + file_size > mem->get_size()) {
 		std::fprintf(stderr, "Error: Program too large for memory\n");
 		std::fclose(file);
 		return -1;
 	}
 
-	size_t read_size = std::fread(&mem->data[load_address], 1, file_size, file);
+	size_t read_size = std::fread(&mem->get_data()[load_address], 1, file_size, file);
 	std::fclose(file);
 
 	if (read_size != (size_t)file_size) {
@@ -35,23 +35,23 @@ static int load_program(memory_t *mem, const char *filename, uint32_t load_addre
 	return 0;
 }
 
-static void dump_registers(cpu_t *cpu) {
+static void dump_registers(CPU *cpu) {
 	std::printf("\nRegister Dump:\n");
-	std::printf("PC: 0x%08x\n", cpu->pc);
+	std::printf("PC: 0x%08x\n", cpu->get_pc());
 
 	std::printf("x0 (zero): 0x%08x\tx1 (ra): 0x%08x\tx2 (sp): 0x%08x\tx3 (gp): 0x%08x\n",
-		cpu->x[0], cpu->x[1], cpu->x[2], cpu->x[3]);
+		cpu->get_register(0), cpu->get_register(1), cpu->get_register(2), cpu->get_register(3));
 	std::printf("x4 (tp): 0x%08x\tx5 (t0): 0x%08x\tx6 (t1): 0x%08x\tx7 (t2): 0x%08x\n",
-		cpu->x[4], cpu->x[5], cpu->x[6], cpu->x[7]);
+		cpu->get_register(4), cpu->get_register(5), cpu->get_register(6), cpu->get_register(7));
 	std::printf("x8 (s0): 0x%08x\tx9 (s1): 0x%08x\tx10(a0): 0x%08x\tx11(a1): 0x%08x\n",
-		cpu->x[8], cpu->x[9], cpu->x[10], cpu->x[11]);
+		cpu->get_register(8), cpu->get_register(9), cpu->get_register(10), cpu->get_register(11));
 
 	for (int i = 12; i < 32; i += 4) {
 		std::printf("x%02d: 0x%08x\tx%02d: 0x%08x\tx%02d: 0x%08x\tx%02d: 0x%08x\n",
-			i, cpu->x[i],
-			i+1, cpu->x[i+1],
-			i+2, cpu->x[i+2],
-			i+3, cpu->x[i+3]);
+			i, cpu->get_register(i),
+			i+1, cpu->get_register(i+1),
+			i+2, cpu->get_register(i+2),
+			i+3, cpu->get_register(i+3));
 	}
 }
 
@@ -70,13 +70,13 @@ int main(int argc, char *argv[]) {
 	std::printf("Stack: 0x%08x - 0x%08x (size: %d bytes)\n",
 		STACK_BASE, STACK_TOP, STACK_SIZE);
 
-	auto mem = memory_init(MEMORY_SIZE);
+	auto mem = std::make_unique<Memory>(MEMORY_SIZE);
 	if (!mem) {
 		std::fprintf(stderr, "Error: Failed to initialize memory\n");
 		return 1;
 	}
 
-	auto cpu = cpu_init();
+	auto cpu = std::make_unique<CPU>();
 	if (!cpu) {
 		std::fprintf(stderr, "Error: Failed to initialize CPU\n");
 		return 1;
@@ -86,23 +86,23 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	cpu->pc = load_address;
+	cpu->set_pc(load_address);
 
 	std::printf("\nStarting execution...\n");
-	std::printf("Initial SP: 0x%08x\n", cpu->x[2]);
-	std::printf("Initial PC: 0x%08x\n", cpu->pc);
+	std::printf("Initial SP: 0x%08x\n", cpu->get_register(2));
+	std::printf("Initial PC: 0x%08x\n", cpu->get_pc());
 	std::printf("\n");
 
 	int step_count = 0;
 	const int max_steps = 1000000;
 	int exit_code = 0;
 
-	while (cpu->running && step_count < max_steps) {
-		cpu_status_t status = cpu_step(cpu.get(), mem.get());
+	while (cpu->is_running() && step_count < max_steps) {
+		cpu_status_t status = cpu->step(mem.get());
 		step_count++;
 
 		if (status == CPU_SYSCALL_EXIT) {
-			exit_code = (int)cpu->x[10];
+			exit_code = (int)cpu->get_register(10);
 			std::printf("Program exited with status: %d\n", exit_code);
 			break;
 		}
