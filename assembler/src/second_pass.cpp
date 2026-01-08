@@ -157,18 +157,7 @@ void Assembler::parse_instruction_args(const char *s, char *op, char *a1, char *
 void Assembler::process_data_directive(FILE *out, char *s, uint32_t *pc) const {
 	s = trim(s);
 
-	if (!strncmp(s, ".ascii", 6)) {
-		char *q = strchr(s, '"');
-		if (!q) {
-			fprintf(stderr, "Malformed .ascii\n");
-			exit(1);
-		}
-		uint8_t buf[1024];
-		size_t n = parse_escaped_string(q + 1, buf);
-		fwrite(buf, 1, n, out);
-		(*pc) += n;
-
-	} else if (!strncmp(s, ".asciiz", 7)) {
+	if (!strncmp(s, ".asciiz", 7)) {
 		char *q = strchr(s, '"');
 		if (!q) {
 			fprintf(stderr, "Malformed .asciiz\n");
@@ -180,6 +169,17 @@ void Assembler::process_data_directive(FILE *out, char *s, uint32_t *pc) const {
 		uint8_t zero = 0;
 		fwrite(&zero, 1, 1, out);
 		(*pc) += n + 1;
+
+	} else if (!strncmp(s, ".ascii", 6)) {
+		char *q = strchr(s, '"');
+		if (!q) {
+			fprintf(stderr, "Malformed .ascii\n");
+			exit(1);
+		}
+		uint8_t buf[1024];
+		size_t n = parse_escaped_string(q + 1, buf);
+		fwrite(buf, 1, n, out);
+		(*pc) += n;
 
 	} else if (!strncmp(s, ".byte", 5)) {
 		char *ptr = s + 5;
