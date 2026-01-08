@@ -10,18 +10,18 @@ The emulator executes RISC-V machine code binaries in a simulated environment. I
 
 ```
 emulator/
-|-- Makefile                 Build configuration
-|-- README.md                This file
-|-- riscv_emulator           Executable
-|-- include/
-|   |-- cpu.hpp              CPU class and registers
-|   |-- memory.hpp           Memory management
-|   '-- instructions.hpp     Instruction decoding
-'-- src/
-    |-- main.cpp             Entry point and CLI
-    |-- cpu.cpp              CPU fetch-decode-execute
-    |-- memory.cpp           Memory operations
-    '-- instructions.cpp     Instruction formatting
+├── Makefile                 Build configuration
+├── README.md                This file
+├── riscv_emulator           Executable
+├── include/
+│   ├── cpu.hpp              CPU class and registers
+│   ├── memory.hpp           Memory management
+│   └── instructions.hpp     Instruction decoding
+└── src/
+    ├── main.cpp             Entry point and CLI
+    ├── cpu.cpp              CPU fetch-decode-execute
+    ├── memory.cpp           Memory operations
+    └── instructions.cpp     Instruction formatting
 ```
 
 ## Features

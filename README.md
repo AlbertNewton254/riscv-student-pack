@@ -17,53 +17,50 @@ For quick start, see [QUICKSTART.md](QUICKSTART.md).
 
 ```
 riscv-student-pack/
-|-- assembler/               Two-pass RV32I assembler
-|   |-- Makefile
-|   |-- README.md
-|   |-- riscv_assembler      Executable
-|   |-- include/
-|   |   '-- assembler.hpp
-|   '-- src/
-|       |-- main.cpp
-|       |-- constructor.cpp
-|       |-- first_pass.cpp
-|       |-- second_pass.cpp
-|       |-- encode.cpp
-|       |-- expand_pseudoinstruction.cpp
-|       |-- adjust_labels.cpp
-|       '-- utils.cpp
-|
-|-- emulator/                RV32I instruction simulator
-|   |-- Makefile
-|   |-- README.md
-|   |-- riscv_emulator       Executable
-|   |-- include/
-|   |   |-- cpu.hpp
-|   |   |-- memory.hpp
-|   |   '-- instructions.hpp
-|   '-- src/
-|       |-- main.cpp
-|       |-- cpu.cpp
-|       |-- memory.cpp
-|       '-- instructions.cpp
-|
-|-- tests/                   Test infrastructure
-|   |-- Makefile
-|   |-- README.md
-|   |-- all_tests.sh
-|   |-- unit_tests.sh
-|   |-- integration_tests.sh
-|   |-- assembler/
-|   |   '-- test_assembler.cpp
-|   |-- emulator/
-|   |   '-- test_emulator.cpp
-|   '-- integration/
-|       '-- test_integration.cpp
-|
-|-- Makefile                 Root build configuration
-|-- README.md                This file
-|-- QUICKSTART.md            Quick start guide
-'-- LICENSE                  MIT License
+├── assembler/               Two-pass RV32I assembler
+│   ├── Makefile
+│   ├── README.md
+│   ├── riscv_assembler      Executable
+│   ├── include/
+│   │   └── assembler.hpp
+│   └── src/
+│       ├── main.cpp
+│       ├── constructor.cpp
+│       ├── first_pass.cpp
+│       ├── second_pass.cpp
+│       ├── encode.cpp
+│       ├── expand_pseudoinstruction.cpp
+│       ├── adjust_labels.cpp
+│       └── utils.cpp
+├── emulator/                RV32I instruction simulator
+│   ├── Makefile
+│   ├── README.md
+│   ├── riscv_emulator       Executable
+│   ├── include/
+│   │   ├── cpu.hpp
+│   │   ├── memory.hpp
+│   │   └── instructions.hpp
+│   └── src/
+│       ├── main.cpp
+│       ├── cpu.cpp
+│       ├── memory.cpp
+│       └── instructions.cpp
+├── tests/                   Test infrastructure
+│   ├── Makefile
+│   ├── README.md
+│   ├── all_tests.sh
+│   ├── unit_tests.sh
+│   ├── integration_tests.sh
+│   ├── assembler/
+│   │   └── test_assembler.cpp
+│   ├── emulator/
+│   │   └── test_emulator.cpp
+│   └── integration/
+│       └── test_integration.cpp
+├── Makefile                 Root build configuration
+├── README.md                This file
+├── QUICKSTART.md            Quick start guide
+└── LICENSE                  MIT License
 ```
 
 ## Features

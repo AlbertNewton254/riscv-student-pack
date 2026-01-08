@@ -10,17 +10,17 @@ The test suite provides comprehensive coverage of both the assembler and emulato
 
 ```
 tests/
-|-- Makefile                    Build configuration
-|-- README.md                   This file
-|-- all_tests.sh                Master test runner script
-|-- unit_tests.sh               Unit tests only script
-|-- integration_tests.sh        Integration tests only script
-|-- assembler/
-|   '-- test_assembler.cpp      10 assembler unit tests
-|-- emulator/
-|   '-- test_emulator.cpp       12 emulator unit tests
-'-- integration/
-    '-- test_integration.cpp    End-to-end tests
+├── Makefile                    Build configuration
+├── README.md                   This file
+├── all_tests.sh                Master test runner script
+├── unit_tests.sh               Unit tests only script
+├── integration_tests.sh        Integration tests only script
+├── assembler/
+│   └── test_assembler.cpp      10 assembler unit tests
+├── emulator/
+│   └── test_emulator.cpp       12 emulator unit tests
+└── integration/
+    └── test_integration.cpp    End-to-end tests
 ```
 
 ## Features

@@ -10,20 +10,20 @@ The assembler reads assembly source files and produces machine code binaries com
 
 ```
 assembler/
-|-- Makefile                 Build configuration
-|-- README.md                This file
-|-- riscv_assembler          Executable
-|-- include/
-|   '-- assembler.hpp        Main assembler class
-'-- src/
-    |-- main.cpp             Entry point and CLI
-    |-- constructor.cpp      Assembler initialization
-    |-- first_pass.cpp       Symbol table building
-    |-- second_pass.cpp      Instruction encoding
-    |-- encode.cpp           Instruction format encoding
-    |-- expand_pseudoinstruction.cpp
-    |-- adjust_labels.cpp    Label address calculation
-    '-- utils.cpp            Utility functions
+├── Makefile                 Build configuration
+├── README.md                This file
+├── riscv_assembler          Executable
+├── include/
+│   └── assembler.hpp        Main assembler class
+└── src/
+    ├── main.cpp             Entry point and CLI
+    ├── constructor.cpp      Assembler initialization
+    ├── first_pass.cpp       Symbol table building
+    ├── second_pass.cpp      Instruction encoding
+    ├── encode.cpp           Instruction format encoding
+    ├── expand_pseudoinstruction.cpp
+    ├── adjust_labels.cpp    Label address calculation
+    └── utils.cpp            Utility functions
 ```
 
 ## Features
