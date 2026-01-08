@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <array>
 
 /* Forward declarations */
 class Memory;
@@ -57,7 +58,7 @@ enum cpu_status_t {
  */
 class CPU {
 private:
-	uint32_t x[32];
+	std::array<uint32_t, 32> x;
 	uint32_t pc;
 	bool running;
 
