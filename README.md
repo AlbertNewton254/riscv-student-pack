@@ -53,8 +53,8 @@ Encapsulates symbol table, current section, address tracking.
 **Binary Output**: Flat binaries (not ELF) for simplicity.
 What you see is what executes.
 
-**Pseudoinstructions**: `li`, `la`, `mv`, `nop` expand to RV32I.
-Idiomatic assembly, pure execution.
+**Pseudoinstructions**: `li`, `la`, `mv`, `nop`, `call`, `ret`, `j` expand to RV32I.
+Idiomatic assembly with function call support, pure execution.
 
 **Sections**: `.text` and `.data` with automatic address calculation.
 
@@ -87,7 +87,7 @@ Both tools implement the complete RV32I base (32 instructions).
 ### Assembler
 
 - All RV32I instructions (R, I, S, B, U, J formats)
-- Pseudoinstructions: `li`, `la`, `mv`, `nop`
+- Pseudoinstructions: `li`, `la`, `mv`, `nop`, `call`, `ret`, `j`
 - Full GAS-compatible `.section` directive support with arbitrary section names
 - Data directives: `.ascii`, `.asciiz`, `.byte`, `.half`, `.word`, `.space`
 - Forward/backward label references
@@ -123,7 +123,7 @@ For usage examples and quick command reference, see [QUICKSTART.md](QUICKSTART.m
 | **Stores** | `sb`, `sh`, `sw` |
 | **Upper Immediate** | `lui`, `auipc` |
 | **System** | `ecall` |
-| **Pseudo** | `li`, `la`, `mv`, `nop` |
+| **Pseudo** | `li`, `la`, `mv`, `nop`, `call`, `ret`, `j` |
 
 ### System Calls
 

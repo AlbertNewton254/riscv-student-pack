@@ -232,7 +232,9 @@ void Assembler::process_data_directive(FILE *out, char *s, uint32_t *pc) const {
 
 static int is_pseudoinstruction(const char *op) {
 	return !strcmp(op, "li") || !strcmp(op, "la") ||
-		   !strcmp(op, "mv") || !strcmp(op, "nop");
+		   !strcmp(op, "mv") || !strcmp(op, "nop") ||
+		   !strcmp(op, "call") || !strcmp(op, "ret") ||
+		   !strcmp(op, "j");
 }
 
 static void debug_parsing(bool debug_mode, const char *original_line, const char *op, const char *a1, const char *a2, const char *a3) {

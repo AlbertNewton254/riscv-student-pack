@@ -44,5 +44,20 @@ int Assembler::expand_pseudoinstruction(const char *op, const char *a1, const ch
 		return 2;
 	}
 
+	if (!strcmp(op, "call")) {
+		snprintf(out_lines[0], MAX_LINE, "jal x1, %s", a1);
+		return 1;
+	}
+
+	if (!strcmp(op, "ret")) {
+		snprintf(out_lines[0], MAX_LINE, "jalr x0, x1, 0");
+		return 1;
+	}
+
+	if (!strcmp(op, "j")) {
+		snprintf(out_lines[0], MAX_LINE, "jal x0, %s", a1);
+		return 1;
+	}
+
 	return 0;
 }

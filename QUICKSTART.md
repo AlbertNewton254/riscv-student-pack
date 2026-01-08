@@ -96,15 +96,16 @@ make test               # Run all unit tests
 **Jumps**: `jal`, `jalr`
 **Memory**: `lb`, `lh`, `lw`, `lbu`, `lhu`, `sb`, `sh`, `sw`
 **Upper**: `lui`, `auipc`
-**Pseudo**: `li`, `la`, `mv`, `nop`
+**Pseudo**: `li`, `la`, `mv`, `nop`, `call`, `ret`, `j`
 
-### Key Directives
-
-```assembly
-.text                   # Code section
-.data                   # Data section
-.section .custom        # Custom section (GAS-compatible)
-
+**Common pseudoinstructions:**
+- `li rd, imm` - Load immediate (expands to `addi` or `lui`+`addi`)
+- `la rd, label` - Load address (expands to `auipc`+`addi`)
+- `mv rd, rs` - Copy register (expands to `addi rd, rs, 0`)
+- `call label` - Call function (expands to `jal ra, label`)
+- `ret` - Return from function (expands to `jalr x0, ra, 0`)
+- `j label` - Unconditional jump (expands to `jal x0, label`)
+- `nop` - No operation (expands to `addi x0, x0, 0`)
 .byte 42                # 8-bit value
 .half 1000              # 16-bit value
 .word 0x12345678        # 32-bit value

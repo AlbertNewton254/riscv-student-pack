@@ -35,6 +35,18 @@ int Assembler::pseudoinstruction_size(const char *op, const char *a2) const {
 		return 2;
 	}
 
+	if (!strcmp(op, "call")) {
+		return 1;
+	}
+
+	if (!strcmp(op, "ret")) {
+		return 1;
+	}
+
+	if (!strcmp(op, "j")) {
+		return 1;
+	}
+
 	return 0;
 }
 
