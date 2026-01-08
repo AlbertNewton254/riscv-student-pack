@@ -1,8 +1,8 @@
-/* instructions.h */
-#ifndef INSTRUCTIONS_H
-#define INSTRUCTIONS_H
+/* instructions.hpp */
+#ifndef INSTRUCTIONS_HPP
+#define INSTRUCTIONS_HPP
 
-#include <stdint.h>
+#include <cstdint>
 
 /*
  * Instruction format types
@@ -14,14 +14,14 @@
  * INSTR_U_TYPE: Upper-immediate-type instructions
  * INSTR_J_TYPE: Jump-type instructions
  */
-typedef enum {
+enum instr_format_t {
 	INSTR_R_TYPE,
 	INSTR_I_TYPE,
 	INSTR_S_TYPE,
 	INSTR_B_TYPE,
 	INSTR_U_TYPE,
 	INSTR_J_TYPE
-} instr_format_t;
+};
 
 /*
  * Decoded instruction structure
@@ -36,10 +36,10 @@ typedef enum {
  * funct3: 3-bit function field
  * funct7: 7-bit function field
  */
-typedef struct instruction_t {
+struct instruction_t {
 	instr_format_t format;
 	uint32_t raw;
-	int32_t imm; 
+	int32_t imm;
 
 	uint8_t opcode;
 	uint8_t rd;
@@ -47,7 +47,7 @@ typedef struct instruction_t {
 	uint8_t rs2;
 	uint8_t funct3;
 	uint8_t funct7;
-} instruction_t;
+};
 
 /**
  * Sign extend a value to 32 bits

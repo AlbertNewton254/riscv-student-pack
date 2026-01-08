@@ -1,19 +1,20 @@
-/* memory.h */
-#ifndef MEMORY_H
-#define MEMORY_H
+/* memory.hpp */
+#ifndef MEMORY_HPP
+#define MEMORY_HPP
 
-#include <stdint.h>
+#include <cstdint>
+#include <memory>
 
 /*
  * Memory instance structure
  *
- * data: Byte-addressable memory array
+ * data: Byte-addressable memory array (managed by unique_ptr)
  * size: Total memory size in bytes
  */
-typedef struct memory_t {
-	uint8_t *data;
+struct memory_t {
+	std::unique_ptr<uint8_t[]> data;
 	uint32_t size;
-} memory_t;
+};
 
 /*
  * Memory operation status codes
@@ -23,28 +24,21 @@ typedef struct memory_t {
  * MEM_WRITE_ERROR: Generic write error
  * MEM_MISALIGNED_ERROR: Misaligned access error
  */
-typedef enum {
+enum memory_status_t {
 	MEM_OK,
 	MEM_READ_ERROR,
 	MEM_WRITE_ERROR,
 	MEM_MISALIGNED_ERROR
-} memory_status_t;
+};
 
 /**
  * Initialize memory with given size
  *
  * size: Memory size in bytes
  *
- * Output: Pointer to new memory instance, NULL on failure
+ * Output: unique_ptr to new memory instance, nullptr on failure
  */
-memory_t *memory_init(uint32_t size);
-
-/**
- * Free memory resources
- *
- * mem: Memory instance to destroy
- */
-void memory_destroy(memory_t *mem);
+std::unique_ptr<memory_t> memory_init(uint32_t size);
 
 /**
  * Read 8-bit value from memory
@@ -112,4 +106,4 @@ memory_status_t memory_read32(memory_t *mem, uint32_t addr, uint32_t *value);
  */
 memory_status_t memory_write32(memory_t *mem, uint32_t addr, uint32_t value);
 
-#endif 
+#endif

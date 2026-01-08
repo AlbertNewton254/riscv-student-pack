@@ -1,37 +1,38 @@
-/* test_emulator.c */
-#include "../include/cpu.h"
-#include "../include/memory.h"
-#include "../include/instructions.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <stdbool.h>
+/* test_emulator.cpp */
+#include "../include/cpu.hpp"
+#include "../include/memory.hpp"
+#include "../include/instructions.hpp"
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cassert>
+#include <memory>
 
 /* Test helper function to create CPU and memory */
-static void setup_cpu_memory(cpu_t **cpu, memory_t **mem, uint32_t mem_size) {
-	*mem = memory_init(mem_size);
-	assert(*mem != NULL);
+static void setup_cpu_memory(std::unique_ptr<cpu_t> &cpu, std::unique_ptr<memory_t> &mem, uint32_t mem_size) {
+	mem = memory_init(mem_size);
+	assert(mem != nullptr);
 
-	*cpu = cpu_init();
-	assert(*cpu != NULL);
+	cpu = cpu_init();
+	assert(cpu != nullptr);
 
 	/* Set PC to a known location */
-	(*cpu)->pc = 0x1000;
+	cpu->pc = 0x1000;
 }
 
 /* Test helper function to cleanup */
-static void cleanup_cpu_memory(cpu_t *cpu, memory_t *mem) {
-	if (cpu) cpu_destroy(cpu);
-	if (mem) memory_destroy(mem);
+static void cleanup_cpu_memory(std::unique_ptr<cpu_t> &cpu, std::unique_ptr<memory_t> &mem) {
+	/* Smart pointers handle cleanup automatically */
+	cpu.reset();
+	mem.reset();
 }
 
 /* Test 1: Basic CPU initialization */
-static void test_cpu_init(void) {
-	printf("Test 1: CPU initialization...\n");
+static void test_cpu_init() {
+	std::printf("Test 1: CPU initialization...\n");
 
-	cpu_t *cpu = cpu_init();
-	assert(cpu != NULL);
+	auto cpu = cpu_init();
+	assert(cpu != nullptr);
 
 	/* Verify register initialization */
 	for (int i = 0; i < 32; i++) {
@@ -47,53 +48,51 @@ static void test_cpu_init(void) {
 	assert(cpu->pc == 0);
 	assert(cpu->running == 1);
 
-	printf("\tOK CPU initialization works\n");
-	cpu_destroy(cpu);
+	std::printf("\tOK CPU initialization works\n");
 }
 
 /* Test 2: Memory operations */
-static void test_memory_operations(void) {
-	printf("Test 2: Memory operations...\n");
+static void test_memory_operations() {
+	std::printf("Test 2: Memory operations...\n");
 
-	memory_t *mem = memory_init(4096);
-	assert(mem != NULL);
+	auto mem = memory_init(4096);
+	assert(mem != nullptr);
 	assert(mem->size == 4096);
 
 	/* Test 8-bit read/write */
 	uint8_t val8;
-	assert(memory_write8(mem, 0x100, 0x42) == MEM_OK);
-	assert(memory_read8(mem, 0x100, &val8) == MEM_OK);
+	assert(memory_write8(mem.get(), 0x100, 0x42) == MEM_OK);
+	assert(memory_read8(mem.get(), 0x100, &val8) == MEM_OK);
 	assert(val8 == 0x42);
 
 	/* Test 16-bit read/write */
 	uint16_t val16;
-	assert(memory_write16(mem, 0x200, 0xABCD) == MEM_OK);
-	assert(memory_read16(mem, 0x200, &val16) == MEM_OK);
+	assert(memory_write16(mem.get(), 0x200, 0xABCD) == MEM_OK);
+	assert(memory_read16(mem.get(), 0x200, &val16) == MEM_OK);
 	assert(val16 == 0xABCD);
 
 	/* Test 32-bit read/write */
 	uint32_t val32;
-	assert(memory_write32(mem, 0x300, 0xDEADBEEF) == MEM_OK);
-	assert(memory_read32(mem, 0x300, &val32) == MEM_OK);
+	assert(memory_write32(mem.get(), 0x300, 0xDEADBEEF) == MEM_OK);
+	assert(memory_read32(mem.get(), 0x300, &val32) == MEM_OK);
 	assert(val32 == 0xDEADBEEF);
 
 	/* Test misaligned accesses */
-	assert(memory_read16(mem, 0x101, &val16) == MEM_MISALIGNED_ERROR);
-	assert(memory_write16(mem, 0x101, 0x1234) == MEM_MISALIGNED_ERROR);
-	assert(memory_read32(mem, 0x102, &val32) == MEM_MISALIGNED_ERROR);
-	assert(memory_write32(mem, 0x102, 0x12345678) == MEM_MISALIGNED_ERROR);
+	assert(memory_read16(mem.get(), 0x101, &val16) == MEM_MISALIGNED_ERROR);
+	assert(memory_write16(mem.get(), 0x101, 0x1234) == MEM_MISALIGNED_ERROR);
+	assert(memory_read32(mem.get(), 0x102, &val32) == MEM_MISALIGNED_ERROR);
+	assert(memory_write32(mem.get(), 0x102, 0x12345678) == MEM_MISALIGNED_ERROR);
 
 	/* Test out of bounds accesses */
-	assert(memory_read8(mem, 0x2000, &val8) == MEM_READ_ERROR);
-	assert(memory_write8(mem, 0x2000, 0x12) == MEM_WRITE_ERROR);
+	assert(memory_read8(mem.get(), 0x2000, &val8) == MEM_READ_ERROR);
+	assert(memory_write8(mem.get(), 0x2000, 0x12) == MEM_WRITE_ERROR);
 
-	printf("\tOK Memory operations work\n");
-	memory_destroy(mem);
+	std::printf("\tOK Memory operations work\n");
 }
 
 /* Test 3: Sign extension */
-static void test_sign_extend(void) {
-	printf("Test 3: Sign extension...\n");
+static void test_sign_extend() {
+	std::printf("Test 3: Sign extension...\n");
 
 	assert(sign_extend(0x000, 12) == 0);
 	assert(sign_extend(0x7FF, 12) == 2047);  /* Max positive 12-bit */
@@ -107,12 +106,12 @@ static void test_sign_extend(void) {
 	assert(sign_extend(0x7FFFFFFF, 32) == 2147483647);
 	assert(sign_extend(0x80000000, 32) == -2147483648);
 
-	printf("\tOK Sign extension works\n");
+	std::printf("\tOK Sign extension works\n");
 }
 
 /* Test 4: Instruction decoding */
-static void test_instruction_decode(void) {
-	printf("Test 4: Instruction decoding...\n");
+static void test_instruction_decode() {
+	std::printf("Test 4: Instruction decoding...\n");
 
 	instruction_t instr;
 
@@ -176,15 +175,15 @@ static void test_instruction_decode(void) {
 	uint32_t invalid_instr = 0x00000000;  /* Invalid opcode */
 	assert(cpu_decode(invalid_instr, &instr) == CPU_DECODE_ERROR);
 
-	printf("\tOK Instruction decoding works\n");
+	std::printf("\tOK Instruction decoding works\n");
 }
 
 /* Test 5: Register read/write operations */
-static void test_register_operations(void) {
-	printf("Test 5: Register operations...\n");
+static void test_register_operations() {
+	std::printf("Test 5: Register operations...\n");
 
-	cpu_t *cpu = cpu_init();
-	assert(cpu != NULL);
+	auto cpu = cpu_init();
+	assert(cpu != nullptr);
 
 	/* Test that x0 is always zero */
 	assert(cpu->x[0] == 0);  /* x0 should be zero */
@@ -201,27 +200,26 @@ static void test_register_operations(void) {
 	assert(cpu->x[10] == 0x1A00);
 	assert(cpu->x[31] == 0x2F00);
 
-	printf("\tOK Register operations work\n");
-	cpu_destroy(cpu);
+	std::printf("\tOK Register operations work\n");
 }
 
 /* Test 6: ALU operations */
-static void test_alu_operations(void) {
-	printf("Test 6: ALU operations (tested through cpu_step)...\n");
+static void test_alu_operations() {
+	std::printf("Test 6: ALU operations (tested through cpu_step)...\n");
 
-	cpu_t *cpu = cpu_init();
-	memory_t *mem = memory_init(8192);
-	assert(cpu != NULL && mem != NULL);
+	auto cpu = cpu_init();
+	auto mem = memory_init(8192);
+	assert(cpu != nullptr && mem != nullptr);
 
 	/* Write an add instruction to memory: add x1, x2, x3 */
 	uint32_t add_instr = 0x003100B3;  /* add x1, x2, x3 */
 	cpu->pc = 0x1000;
 	cpu->x[2] = 10;
 	cpu->x[3] = 20;
-	memory_write32(mem, 0x1000, add_instr);
+	memory_write32(mem.get(), 0x1000, add_instr);
 
 	/* Execute the instruction */
-	cpu_status_t status = cpu_step(cpu, mem);
+	cpu_status_t status = cpu_step(cpu.get(), mem.get());
 	assert(status == CPU_OK);
 	assert(cpu->x[1] == 30);  /* 10 + 20 = 30 */
 
@@ -230,39 +228,36 @@ static void test_alu_operations(void) {
 	cpu->pc = 0x1004;
 	cpu->x[5] = 50;
 	cpu->x[6] = 30;
-	memory_write32(mem, 0x1004, sub_instr);
+	memory_write32(mem.get(), 0x1004, sub_instr);
 
-	status = cpu_step(cpu, mem);
+	status = cpu_step(cpu.get(), mem.get());
 	assert(status == CPU_OK);
 	assert(cpu->x[4] == 20);  /* 50 - 30 = 20 */
 
-	printf("\tOK ALU operations work (tested through cpu_step)\n");
-
-	cpu_destroy(cpu);
-	memory_destroy(mem);
+	std::printf("\tOK ALU operations work (tested through cpu_step)\n");
 }
 
 /* Test 7: Load/Store operations */
-static void test_load_store(void) {
-	printf("Test 7: Load/Store operations...\n");
+static void test_load_store() {
+	std::printf("Test 7: Load/Store operations...\n");
 
-	cpu_t *cpu;
-	memory_t *mem;
-	setup_cpu_memory(&cpu, &mem, 8192);
+	std::unique_ptr<cpu_t> cpu;
+	std::unique_ptr<memory_t> mem;
+	setup_cpu_memory(cpu, mem, 8192);
 
 	/* Initialize some test data in memory */
-	assert(memory_write32(mem, 0x200, 0x12345678) == MEM_OK);
-	assert(memory_write16(mem, 0x204, 0xABCD) == MEM_OK);
-	assert(memory_write8(mem, 0x206, 0x42) == MEM_OK);
+	assert(memory_write32(mem.get(), 0x200, 0x12345678) == MEM_OK);
+	assert(memory_write16(mem.get(), 0x204, 0xABCD) == MEM_OK);
+	assert(memory_write8(mem.get(), 0x206, 0x42) == MEM_OK);
 
 	/* Test LW instruction through cpu_step */
 	/* Write LW instruction: lw x1, 0x200(x2) */
 	uint32_t lw_instr = 0x20012083;  /* lw x1, 0x200(x2) */
 	cpu->pc = 0x1000;
 	cpu->x[2] = 0x0;  /* Base address 0 */
-	memory_write32(mem, 0x1000, lw_instr);
+	memory_write32(mem.get(), 0x1000, lw_instr);
 
-	cpu_status_t status = cpu_step(cpu, mem);
+	cpu_status_t status = cpu_step(cpu.get(), mem.get());
 	assert(status == CPU_OK);
 	assert(cpu->x[1] == 0x12345678);  /* Should load the word */
 
@@ -271,37 +266,37 @@ static void test_load_store(void) {
 	uint32_t sw_instr = 0x20112423;  /* sw x1, 0x208(x2) */
 	cpu->pc = 0x1004;
 	cpu->x[1] = 0xDEADBEEF;
-	memory_write32(mem, 0x1004, sw_instr);
+	memory_write32(mem.get(), 0x1004, sw_instr);
 
-	status = cpu_step(cpu, mem);
+	status = cpu_step(cpu.get(), mem.get());
 	assert(status == CPU_OK);
 
 	/* Verify the store */
 	uint32_t stored_word;
-	assert(memory_read32(mem, 0x208, &stored_word) == MEM_OK);
+	assert(memory_read32(mem.get(), 0x208, &stored_word) == MEM_OK);
 	assert(stored_word == 0xDEADBEEF);
 
-	printf("\tOK Load/Store operations work (tested through cpu_step)\n");
+	std::printf("\tOK Load/Store operations work (tested through cpu_step)\n");
 	cleanup_cpu_memory(cpu, mem);
 }
 
 /* Test 8: Branch operations */
-static void test_branch_operations(void) {
-	printf("Test 8: Branch operations...\n");
+static void test_branch_operations() {
+	std::printf("Test 8: Branch operations...\n");
 
-	cpu_t *cpu;
-	memory_t *mem;
-	setup_cpu_memory(&cpu, &mem, 8192);
+	std::unique_ptr<cpu_t> cpu;
+	std::unique_ptr<memory_t> mem;
+	setup_cpu_memory(cpu, mem, 8192);
 
 	/* Write a BEQ instruction: beq x1, x2, 16 */
 	uint32_t beq_instr = 0x00208863;  /* beq x1, x2, 16 */
 	cpu->pc = 0x1000;
 	cpu->x[1] = 42;
 	cpu->x[2] = 42;
-	memory_write32(mem, 0x1000, beq_instr);
+	memory_write32(mem.get(), 0x1000, beq_instr);
 
 	/* Execute BEQ when registers are equal (should branch) */
-	cpu_status_t status = cpu_step(cpu, mem);
+	cpu_status_t status = cpu_step(cpu.get(), mem.get());
 	assert(status == CPU_OK);
 	assert(cpu->pc == 0x1010);  /* 0x1000 + 16 */
 
@@ -309,45 +304,45 @@ static void test_branch_operations(void) {
 	cpu->pc = 0x1000;
 	cpu->x[1] = 42;
 	cpu->x[2] = 43;
-	memory_write32(mem, 0x1000, beq_instr);
+	memory_write32(mem.get(), 0x1000, beq_instr);
 
-	status = cpu_step(cpu, mem);
+	status = cpu_step(cpu.get(), mem.get());
 	assert(status == CPU_OK);
 	assert(cpu->pc == 0x1004);  /* PC should just advance by 4 */
 
-	printf("\tOK Branch operations work (tested through cpu_step)\n");
+	std::printf("\tOK Branch operations work (tested through cpu_step)\n");
 	cleanup_cpu_memory(cpu, mem);
 }
 
 /* Test 9: System call operations */
-static void test_system_calls(void) {
-	printf("Test 9: System call operations...\n");
+static void test_system_calls() {
+	std::printf("Test 9: System call operations...\n");
 
-	cpu_t *cpu;
-	memory_t *mem;
-	setup_cpu_memory(&cpu, &mem, 8192);
+	std::unique_ptr<cpu_t> cpu;
+	std::unique_ptr<memory_t> mem;
+	setup_cpu_memory(cpu, mem, 8192);
 
 	/* Write ECALL instruction */
 	uint32_t ecall_instr = 0x00000073;  /* ecall */
 	cpu->pc = 0x1000;
 	cpu->x[17] = SYS_exit;  /* a7 = exit syscall number */
-	memory_write32(mem, 0x1000, ecall_instr);
+	memory_write32(mem.get(), 0x1000, ecall_instr);
 
-	cpu_status_t status = cpu_step(cpu, mem);
+	cpu_status_t status = cpu_step(cpu.get(), mem.get());
 	assert(status == CPU_SYSCALL_EXIT);
 	assert(cpu->running == 0);
 
-	printf("\tOK System call operations work (tested through cpu_step)\n");
+	std::printf("\tOK System call operations work (tested through cpu_step)\n");
 	cleanup_cpu_memory(cpu, mem);
 }
 
 /* Test 10: Complete CPU step execution */
-static void test_cpu_step(void) {
-	printf("Test 10: Complete CPU step execution...\n");
+static void test_cpu_step() {
+	std::printf("Test 10: Complete CPU step execution...\n");
 
-	cpu_t *cpu;
-	memory_t *mem;
-	setup_cpu_memory(&cpu, &mem, 8192);
+	std::unique_ptr<cpu_t> cpu;
+	std::unique_ptr<memory_t> mem;
+	setup_cpu_memory(cpu, mem, 8192);
 
 	/* Write a simple program to memory */
 	/* Program: addi x1, x0, 42  (0x02A00093) */
@@ -359,17 +354,17 @@ static void test_cpu_step(void) {
 
 	/* Write program to memory starting at PC */
 	for (size_t i = 0; i < sizeof(program)/sizeof(program[0]); i++) {
-		assert(memory_write32(mem, cpu->pc + i*4, program[i]) == MEM_OK);
+		assert(memory_write32(mem.get(), cpu->pc + i*4, program[i]) == MEM_OK);
 	}
 
 	/* Execute first instruction */
-	cpu_status_t status = cpu_step(cpu, mem);
+	cpu_status_t status = cpu_step(cpu.get(), mem.get());
 	assert(status == CPU_OK);
 	assert(cpu->x[1] == 42);  /* x1 should now be 42 */
 	assert(cpu->pc == 0x1004);  /* PC should advance by 4 */
 
 	/* Execute second instruction */
-	status = cpu_step(cpu, mem);
+	status = cpu_step(cpu.get(), mem.get());
 	assert(status == CPU_OK);
 	assert(cpu->x[1] == 43);  /* x1 should now be 43 */
 	assert(cpu->pc == 0x1008);  /* PC should advance by 4 */
@@ -379,35 +374,34 @@ static void test_cpu_step(void) {
 	cpu->x[10] = 0;        /* a0 = exit code 0 */
 
 	/* Execute third instruction (ecall) */
-	status = cpu_step(cpu, mem);
+	status = cpu_step(cpu.get(), mem.get());
 	assert(status == CPU_SYSCALL_EXIT);
 	assert(cpu->running == 0);
 
 	/* Test with misaligned PC */
-	cpu_t *cpu2 = cpu_init();
+	auto cpu2 = cpu_init();
 	cpu2->pc = 0x1001;  /* Misaligned PC */
 
-	status = cpu_step(cpu2, mem);
+	status = cpu_step(cpu2.get(), mem.get());
 	assert(status == CPU_FETCH_MISALIGNED);
 
 	/* Test with out of bounds PC */
 	cpu2->pc = 0xFFFFFFFC;  /* Near end of memory */
 
-	status = cpu_step(cpu2, mem);
+	status = cpu_step(cpu2.get(), mem.get());
 	assert(status == CPU_FETCH_OUT_OF_BOUNDS);
 
-	printf("\tOK Complete CPU step execution works\n");
+	std::printf("\tOK Complete CPU step execution works\n");
 	cleanup_cpu_memory(cpu, mem);
-	cpu_destroy(cpu2);
 }
 
 /* Test 11: Complex instruction execution */
-static void test_complex_execution(void) {
-	printf("Test 11: Complex instruction execution...\n");
+static void test_complex_execution() {
+	std::printf("Test 11: Complex instruction execution...\n");
 
-	cpu_t *cpu;
-	memory_t *mem;
-	setup_cpu_memory(&cpu, &mem, 8192);
+	std::unique_ptr<cpu_t> cpu;
+	std::unique_ptr<memory_t> mem;
+	setup_cpu_memory(cpu, mem, 8192);
 
 	/* Write a more complex program */
 	uint32_t program[] = {
@@ -423,13 +417,13 @@ static void test_complex_execution(void) {
 
 	/* Write program to memory */
 	for (size_t i = 0; i < sizeof(program)/sizeof(program[0]); i++) {
-		assert(memory_write32(mem, cpu->pc + i*4, program[i]) == MEM_OK);
+		assert(memory_write32(mem.get(), cpu->pc + i*4, program[i]) == MEM_OK);
 	}
 
 	/* Execute all instructions */
 	int steps = 0;
 	while (cpu->running && steps < 100) {
-		cpu_status_t status = cpu_step(cpu, mem);
+		cpu_status_t status = cpu_step(cpu.get(), mem.get());
 		if (status == CPU_SYSCALL_EXIT) break;
 		assert(status == CPU_OK);
 		steps++;
@@ -443,13 +437,13 @@ static void test_complex_execution(void) {
 	assert(cpu->x[6] == 3200);  /* x6 = x1 << 5 */
 	assert(cpu->x[7] == 0);     /* x7 = x1 >> 105 */
 
-	printf("\tOK Complex instruction execution works\n");
+	std::printf("\tOK Complex instruction execution works\n");
 	cleanup_cpu_memory(cpu, mem);
 }
 
 /* Test 12: Memory layout and stack */
-static void test_memory_layout(void) {
-	printf("Test 12: Memory layout and stack...\n");
+static void test_memory_layout() {
+	std::printf("Test 12: Memory layout and stack...\n");
 
 	/* Test constants */
 	assert(MEMORY_SIZE == 16 * 1024 * 1024);
@@ -458,61 +452,60 @@ static void test_memory_layout(void) {
 	assert(STACK_TOP == STACK_BASE + STACK_SIZE);
 
 	/* Test that stack pointer is initialized correctly */
-	cpu_t *cpu = cpu_init();
+	auto cpu = cpu_init();
 	assert(cpu->x[2] == STACK_TOP);  /* sp should be at stack top */
 
-	printf("\tOK Memory layout is correct\n");
-	cpu_destroy(cpu);
+	std::printf("\tOK Memory layout is correct\n");
 }
 
 /* Test 13: Instruction fetch */
-static void test_instruction_fetch(void) {
-	printf("Test 13: Instruction fetch...\n");
+static void test_instruction_fetch() {
+	std::printf("Test 13: Instruction fetch...\n");
 
-	cpu_t *cpu;
-	memory_t *mem;
-	setup_cpu_memory(&cpu, &mem, 8192);
+	std::unique_ptr<cpu_t> cpu;
+	std::unique_ptr<memory_t> mem;
+	setup_cpu_memory(cpu, mem, 8192);
 
 	/* Write instructions to memory */
 	uint32_t instructions[] = {0x12345678, 0x9ABCDEF0, 0x11111111};
 
 	for (size_t i = 0; i < sizeof(instructions)/sizeof(instructions[0]); i++) {
 		uint32_t addr = 0x1000 + i * 4;
-		assert(memory_write32(mem, addr, instructions[i]) == MEM_OK);
+		assert(memory_write32(mem.get(), addr, instructions[i]) == MEM_OK);
 	}
 
 	/* Test normal fetch */
 	cpu->pc = 0x1000;
 	uint32_t fetched;
 
-	cpu_status_t status = cpu_fetch(cpu, mem, &fetched);
+	cpu_status_t status = cpu_fetch(cpu.get(), mem.get(), &fetched);
 	assert(status == CPU_OK);
 	assert(fetched == 0x12345678);
 	assert(cpu->pc == 0x1004);
 
 	/* Fetch next instruction */
-	status = cpu_fetch(cpu, mem, &fetched);
+	status = cpu_fetch(cpu.get(), mem.get(), &fetched);
 	assert(status == CPU_OK);
 	assert(fetched == 0x9ABCDEF0);
 	assert(cpu->pc == 0x1008);
 
 	/* Test misaligned fetch */
 	cpu->pc = 0x1001;
-	status = cpu_fetch(cpu, mem, &fetched);
+	status = cpu_fetch(cpu.get(), mem.get(), &fetched);
 	assert(status == CPU_FETCH_MISALIGNED);
 	assert(cpu->pc == 0x1001);  /* PC should not advance on error */
 
 	/* Test out of bounds fetch */
 	cpu->pc = 0xFFFFFFFC;  /* Last word in 32-bit address space */
-	status = cpu_fetch(cpu, mem, &fetched);
+	status = cpu_fetch(cpu.get(), mem.get(), &fetched);
 	assert(status == CPU_FETCH_OUT_OF_BOUNDS);
 
-	printf("\tOK Instruction fetch works\n");
+	std::printf("\tOK Instruction fetch works\n");
 	cleanup_cpu_memory(cpu, mem);
 }
 
-int main(void) {
-	printf("=== RISC-V Emulator Comprehensive Tests ===\n\n");
+int main() {
+	std::printf("=== RISC-V Emulator Comprehensive Tests ===\n\n");
 
 	int test_count = 0;
 
@@ -531,6 +524,6 @@ int main(void) {
 	test_memory_layout(); test_count++;
 	test_instruction_fetch(); test_count++;
 
-	printf("\n=== All %d tests passed! ===\n", test_count);
+	std::printf("\n=== All %d tests passed! ===\n", test_count);
 	return 0;
 }

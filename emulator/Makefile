@@ -1,20 +1,20 @@
 # Makefile for RISC-V Emulator
 
 # Compiler and flags
-CC = gcc
-CFLAGS = -Wall -Wextra -Werror -std=c99 -O2 -g
+CXX = g++
+CXXFLAGS = -Wall -Wextra -Werror -std=c++17 -O2 -g
 INCLUDES = -I./include
 
 # Source files (relative to src directory)
 SRC_DIR = src
-SRC_C = $(SRC_DIR)/cpu.c $(SRC_DIR)/instructions.c $(SRC_DIR)/memory.c
-SRC_MAIN = $(SRC_DIR)/main.c
-SRC_TEST = tests/test_emulator.c
+SRC_CPP = $(SRC_DIR)/cpu.cpp $(SRC_DIR)/instructions.cpp $(SRC_DIR)/memory.cpp
+SRC_MAIN = $(SRC_DIR)/main.cpp
+SRC_TEST = tests/test_emulator.cpp
 
 # Object files
-OBJ = $(SRC_C:.c=.o)
-OBJ_MAIN = $(SRC_MAIN:.c=.o)
-OBJ_TEST = $(SRC_TEST:.c=.o)
+OBJ = $(SRC_CPP:.cpp=.o)
+OBJ_MAIN = $(SRC_MAIN:.cpp=.o)
+OBJ_TEST = $(SRC_TEST:.cpp=.o)
 
 # Executable names
 EXEC = riscv_emulator
@@ -25,31 +25,35 @@ all: $(EXEC)
 
 # Main emulator executable
 $(EXEC): $(OBJ) $(OBJ_MAIN)
-	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $^
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $^
 
 # Test executable
 $(TEST_EXEC): $(OBJ) $(OBJ_TEST)
-	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $^
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $^
 
-# Pattern rule for compiling .c files
+# Pattern rule for compiling .cpp files
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+# Pattern rule for compiling .c files (for tests)
 %.o: %.c
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 # Specific dependencies with correct paths
-$(SRC_DIR)/cpu.o: $(SRC_DIR)/cpu.c include/cpu.h include/memory.h include/instructions.h
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+$(SRC_DIR)/cpu.o: $(SRC_DIR)/cpu.cpp include/cpu.hpp include/memory.hpp include/instructions.hpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
-$(SRC_DIR)/instructions.o: $(SRC_DIR)/instructions.c include/instructions.h include/cpu.h
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+$(SRC_DIR)/instructions.o: $(SRC_DIR)/instructions.cpp include/instructions.hpp include/cpu.hpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
-$(SRC_DIR)/memory.o: $(SRC_DIR)/memory.c include/memory.h
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+$(SRC_DIR)/memory.o: $(SRC_DIR)/memory.cpp include/memory.hpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
-$(SRC_DIR)/main.o: $(SRC_DIR)/main.c include/cpu.h include/memory.h
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+$(SRC_DIR)/main.o: $(SRC_DIR)/main.cpp include/cpu.hpp include/memory.hpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
-tests/test_emulator.o: tests/test_emulator.c include/cpu.h include/memory.h include/instructions.h
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+tests/test_emulator.o: tests/test_emulator.cpp include/cpu.hpp include/memory.hpp include/instructions.hpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 # Run tests
 test: $(TEST_EXEC)
@@ -74,18 +78,18 @@ clean-soft:
 
 # Format code (optional - requires clang-format)
 format:
-	find . -name "*.c" -o -name "*.h" | xargs clang-format -i
+	find . -name "*.cpp" -o -name "*.hpp" | xargs clang-format -i
 
 # Static analysis (optional - requires cppcheck)
 analyze:
 	cppcheck --enable=all --suppress=missingIncludeSystem .
 
 # Debug build
-debug: CFLAGS += -DDEBUG -O0
+debug: CXXFLAGS += -DDEBUG -O0
 debug: clean $(EXEC)
 
 # Release build (optimized)
-release: CFLAGS += -O3 -DNDEBUG
+release: CXXFLAGS += -O3 -DNDEBUG
 release: clean $(EXEC)
 
 # Help

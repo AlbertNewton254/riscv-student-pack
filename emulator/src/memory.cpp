@@ -1,29 +1,24 @@
-/* memory.c */
-#include "memory.h"
-#include <stdlib.h>
-#include <stdint.h>
+/* memory.cpp */
+#include "memory.hpp"
+#include <cstdlib>
+#include <cstdint>
+#include <memory>
 
-memory_t *memory_init(uint32_t size) {
-	memory_t *mem = (memory_t *)malloc(sizeof(memory_t));
-	if (!mem) {
-		return NULL;
+std::unique_ptr<memory_t> memory_init(uint32_t size) {
+	auto mem = std::make_unique<memory_t>();
+
+	mem->data = std::make_unique<uint8_t[]>(size);
+	if (!mem->data) {
+		return nullptr;
 	}
 
-	mem->data = (uint8_t *)calloc(size, sizeof(uint8_t));
-	if (!mem->data) {
-		free(mem);
-		return NULL;
+	/* Zero-initialize memory */
+	for (uint32_t i = 0; i < size; i++) {
+		mem->data[i] = 0;
 	}
 
 	mem->size = size;
 	return mem;
-}
-
-void memory_destroy(memory_t *mem) {
-	if (mem) {
-		free(mem->data);
-		free(mem);
-	}
 }
 
 memory_status_t memory_read8(memory_t *mem, uint32_t addr, uint8_t *value) {

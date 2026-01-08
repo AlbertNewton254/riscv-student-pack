@@ -1,21 +1,18 @@
-/* cpu.c */
-#include "cpu.h"
-#include "memory.h"
-#include "instructions.h"
-#include <stdlib.h>
-#include <stdbool.h>
-#include <stdio.h>
+/* cpu.cpp */
+#include "cpu.hpp"
+#include "memory.hpp"
+#include "instructions.hpp"
+#include <cstdlib>
+#include <memory>
+#include <cstdio>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
-#include <errno.h>
-#include <string.h>
+#include <cerrno>
+#include <cstring>
 
-cpu_t *cpu_init(void) {
-	cpu_t *cpu = (cpu_t *)malloc(sizeof(cpu_t));
-	if (!cpu) {
-		return NULL;
-	}
+std::unique_ptr<cpu_t> cpu_init() {
+	auto cpu = std::make_unique<cpu_t>();
 
 	for (int i = 0; i < 32; i++) {
 		cpu->x[i] = 0;
@@ -26,12 +23,6 @@ cpu_t *cpu_init(void) {
 	cpu->x[2] = STACK_TOP;
 
 	return cpu;
-}
-
-void cpu_destroy(cpu_t *cpu) {
-	if (cpu) {
-		free(cpu);
-	}
 }
 
 cpu_status_t cpu_fetch(cpu_t *cpu, memory_t *mem, uint32_t *instruction) {
@@ -141,7 +132,7 @@ static cpu_status_t handle_syscall(cpu_t *cpu, memory_t *mem) {
 
 			if (result == 0 && arg2 + sizeof(st) <= mem->size) {
 				size_t copy_size = sizeof(st) < 64 ? sizeof(st) : 64;
-				memcpy(&mem->data[arg2], &st, copy_size);
+				std::memcpy(&mem->data[arg2], &st, copy_size);
 			}
 
 			cpu->x[10] = (uint32_t)result;
@@ -308,7 +299,7 @@ static cpu_status_t execute_system(cpu_t *cpu, memory_t *mem, instruction_t *ins
 			return handle_syscall(cpu, mem);
 
 		case 0x001:
-			fprintf(stderr, "Breakpoint at PC: 0x%08x\n", cpu->pc - 4);
+			std::fprintf(stderr, "Breakpoint at PC: 0x%08x\n", cpu->pc - 4);
 			return CPU_OK;
 
 		default:

@@ -1,8 +1,9 @@
-/* cpu.h */
-#ifndef CPU_H
-#define CPU_H
+/* cpu.hpp */
+#ifndef CPU_HPP
+#define CPU_HPP
 
-#include <stdint.h>
+#include <cstdint>
+#include <memory>
 
 /*
  * CPU execution status codes
@@ -16,7 +17,7 @@
  * CPU_ILLEGAL_INSTRUCTION: Illegal instruction encountered
  * CPU_SYSCALL_EXIT: System call exit requested
  */
-typedef enum {
+enum cpu_status_t {
 	CPU_OK,
 	CPU_FETCH_ERROR,
 	CPU_FETCH_MISALIGNED,
@@ -25,7 +26,7 @@ typedef enum {
 	CPU_EXECUTION_ERROR,
 	CPU_ILLEGAL_INSTRUCTION,
 	CPU_SYSCALL_EXIT
-} cpu_status_t;
+};
 
 /** Linux-compatible RISC-V system call numbers (RV32) */
 #define SYS_exit 93
@@ -52,31 +53,24 @@ typedef enum {
  * pc: Program counter
  * running: Non-zero while CPU should continue execution
  */
-typedef struct cpu_t {
+struct cpu_t {
 	uint32_t x[32];
 	uint32_t pc;
 	int running;
-} cpu_t;
+};
 
 /* Memory structure - forward declared */
-typedef struct memory_t memory_t;
+struct memory_t;
 
 /* Instruction structure - defined in instructions.h */
-typedef struct instruction_t instruction_t;
+struct instruction_t;
 
 /**
  * Initialize CPU state
  *
- * Output: Pointer to new CPU instance, NULL on failure
+ * Output: unique_ptr to new CPU instance, nullptr on failure
  */
-cpu_t *cpu_init(void);
-
-/**
- * Free CPU resources
- *
- * cpu: CPU instance to destroy
- */
-void cpu_destroy(cpu_t *cpu);
+std::unique_ptr<cpu_t> cpu_init();
 
 /**
  * Fetch next instruction from memory
@@ -120,4 +114,4 @@ cpu_status_t cpu_execute(cpu_t *cpu, memory_t *mem, instruction_t *instr);
  */
 cpu_status_t cpu_step(cpu_t *cpu, memory_t *mem);
 
-#endif 
+#endif

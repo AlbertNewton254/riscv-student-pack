@@ -1,7 +1,7 @@
-/* instructions.c */
-#include "cpu.h"
-#include "instructions.h"
-#include <stdint.h>
+/* instructions.cpp */
+#include "cpu.hpp"
+#include "instructions.hpp"
+#include <cstdint>
 
 int32_t sign_extend(uint32_t value, int bits) {
 	/* sign-extend 'value' that has 'bits' significant bits */
