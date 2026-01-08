@@ -82,9 +82,10 @@ int32_t parse_imm(const assembler_state_t *state, const char *s) {
 		return 0;
 	}
 
-	/* Check for hexadecimal */
-	if (s[0] == '0' && (s[1] == 'x' || s[1] == 'X')) {
-		return (int32_t)strtoul(s, NULL, 16);
+	/* Check for hexadecimal (with optional negative sign) */
+	if ((s[0] == '0' && (s[1] == 'x' || s[1] == 'X')) ||
+		(s[0] == '-' && s[1] == '0' && (s[2] == 'x' || s[2] == 'X'))) {
+		return (int32_t)strtol(s, NULL, 16);
 	}
 
 	/* Check for decimal (positive or negative) */
