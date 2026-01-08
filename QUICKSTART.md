@@ -1,24 +1,36 @@
 # RISC-V Student Pack - Quick Start
 
-Get up and running with the RISC-V assembler and emulator in under 5 minutes.
+Action-oriented guide to get working code in 5 minutes.
 
 ## Prerequisites
 
-- G++ with C++17 support
-- GNU Make
-- Linux (for syscall support)
-
-## Build
+Verify you have the required tools:
 
 ```bash
-git clone <repository-url>
+g++ --version        # Need 7.0 or higher
+make --version       # Any recent version
+uname -s             # Must be Linux
+```
+
+Stop and install missing tools before continuing.
+
+## Build and Install
+
+Clone and build the project:
+
+```bash
+git clone git@github.com:AlbertNewton254/riscv-student-pack.git
 cd riscv-student-pack
 make
 ```
 
-## Your First Program
+You now have:
+- assembler/riscv_assembler - Translates .s files to binaries
+- emulator/riscv_emulator - Executes binary files
 
-Create `hello.s`:
+## Write a Program
+
+Create hello.s:
 
 ```assembly
 .text
@@ -26,207 +38,311 @@ Create `hello.s`:
 
 _start:
     # Write "Hello, RISC-V!\n" to stdout
-    li a0, 1                    # stdout
+    li a0, 1                    # stdout (fd=1)
     la a1, message              # buffer address
-    li a2, 15                   # length
-    li a7, 64                   # sys_write
+    li a2, 15                   # number of bytes
+    li a7, 64                   # syscall: write
     ecall
 
-    # Exit
+    # Exit program
     li a0, 0                    # exit code
-    li a7, 93                   # sys_exit
+    li a7, 93                   # syscall: exit
     ecall
 
 .data
 message:
-    .ascii "Hello, RISC-V!\n"
+    .asciiz "Hello, RISC-V!\n"
 ```
 
-## Assemble and Run
+## Assemble
 
 ```bash
-# Assemble
 ./assembler/riscv_assembler hello.s hello.bin
+```
 
-# Run
+Success: hello.bin now contains executable code.
+
+## Run
+
+```bash
 ./emulator/riscv_emulator hello.bin
 ```
 
-Output: `Hello, RISC-V!`
+Expected output: `Hello, RISC-V!`
+
+## More Examples
+
+### Simple Arithmetic
+
+File: add.s
+
+```assembly
+.text
+_start:
+    li x1, 42
+    li x2, 8
+    add x3, x1, x2
+    # x3 = 50
+
+    li a0, 0
+    li a7, 93
+    ecall
+```
+
+### Loop (Count to 10)
+
+File: loop.s
+
+```assembly
+.text
+_start:
+    li x1, 0        # counter
+
+loop:
+    addi x1, x1, 1  # x1++
+    li x2, 10
+    bne x1, x2, loop    # if x1 != 10, go back
+
+    li a0, 0
+    li a7, 93
+    ecall
+```
+
+### Using Memory
+
+File: memory.s
+
+```assembly
+.text
+_start:
+    la x1, data     # Load address of data
+    lw x2, 0(x1)    # Load first word
+    lw x3, 4(x1)    # Load second word
+    add x4, x2, x3  # Add them
+
+    li a0, 0
+    li a7, 93
+    ecall
+
+.data
+data:
+    .word 100
+    .word 200
+```
 
 ## Common Commands
 
-### Build
+| Task | Command |
+|------|---------|
+| Build | `make` |
+| Assemble | `./assembler/riscv_assembler prog.s prog.bin` |
+| Run | `./emulator/riscv_emulator prog.bin` |
+| Test | `make test` |
+| Debug assembler | `./assembler/riscv_assembler --debug prog.s prog.bin` |
+| Debug emulator | `./emulator/riscv_emulator --debug prog.bin` |
+| Clean | `make clean` |
+| Help | `make help` |
+
+## Assemble and Run in One Command
+
 ```bash
-make                    # Build both tools
-make assembler          # Build assembler only
-make emulator           # Build emulator only
+./assembler/riscv_assembler program.s program.bin && \
+./emulator/riscv_emulator program.bin
 ```
 
-### Clean
-```bash
-make clean              # Remove object files (fast rebuild)
-make clean-all          # Remove everything including executables
-```
+## Debug with Trace Output
 
-### Test
-```bash
-make test               # Run all unit tests
-./unit_tests.sh         # Alternative test runner
-```
+### Assembler Debug
 
-### Debug Mode
 ```bash
-# See detailed assembly process
 ./assembler/riscv_assembler --debug program.s program.bin
+```
 
-# Trace instruction execution
+Shows each line processed, label resolution, and pseudoinstruction expansion.
+
+### Emulator Debug
+
+```bash
 ./emulator/riscv_emulator --debug program.bin
 ```
 
-## Quick Reference
+Shows fetch/decode/execute for every instruction.
 
-### Supported Instructions
+## Instruction Cheat Sheet
 
-**Arithmetic**: `add`, `sub`, `addi`
-**Logical**: `and`, `or`, `xor`, `andi`, `ori`, `xori`
-**Shifts**: `sll`, `srl`, `sra`, `slli`, `srli`, `srai`
-**Compare**: `slt`, `sltu`, `slti`, `sltiu`
-**Branches**: `beq`, `bne`, `blt`, `bge`, `bltu`, `bgeu`
-**Jumps**: `jal`, `jalr`
-**Memory**: `lb`, `lh`, `lw`, `lbu`, `lhu`, `sb`, `sh`, `sw`
-**Upper**: `lui`, `auipc`
-**Pseudo**: `li`, `la`, `mv`, `nop`, `call`, `ret`, `j`
+### Load a Value
 
-**Common pseudoinstructions:**
-- `li rd, imm` - Load immediate (expands to `addi` or `lui`+`addi`)
-- `la rd, label` - Load address (expands to `auipc`+`addi`)
-- `mv rd, rs` - Copy register (expands to `addi rd, rs, 0`)
-- `call label` - Call function (expands to `jal ra, label`)
-- `ret` - Return from function (expands to `jalr x0, ra, 0`)
-- `j label` - Unconditional jump (expands to `jal x0, label`)
-- `nop` - No operation (expands to `addi x0, x0, 0`)
-.byte 42                # 8-bit value
-.half 1000              # 16-bit value
-.word 0x12345678        # 32-bit value
-.ascii "text"           # String (no null terminator)
-.asciiz "text"          # Null-terminated string
-.space 100              # Reserve 100 bytes
+```assembly
+li x1, 42           # Load immediate
+li x1, 0x12345678   # For larger values, expands to lui+addi
+```
+
+### Load an Address
+
+```assembly
+la x1, label        # Load address of label
+la x1, data         # Works for data section too
+```
+
+### Arithmetic
+
+```assembly
+add x1, x2, x3      # x1 = x2 + x3
+addi x1, x2, 10     # x1 = x2 + 10
+sub x1, x2, x3      # x1 = x2 - x3
+```
+
+### Branches
+
+```assembly
+beq x1, x2, label   # If x1 == x2, jump to label
+bne x1, x2, label   # If x1 != x2, jump to label
+blt x1, x2, label   # If x1 < x2, jump (signed)
+bge x1, x2, label   # If x1 >= x2, jump (signed)
+```
+
+### Jumps
+
+```assembly
+j label             # Unconditional jump to label
+jal ra, label       # Jump and link (call subroutine)
+ret                 # Return from subroutine
+```
+
+### Memory
+
+```assembly
+lw x1, 0(x2)        # Load word from address in x2
+sw x1, 0(x2)        # Store word to address in x2
+lh x1, 0(x2)        # Load halfword (16-bit)
+sh x1, 0(x2)        # Store halfword
+lb x1, 0(x2)        # Load byte
+sb x1, 0(x2)        # Store byte
+```
+
+### Logical
+
+```assembly
+and x1, x2, x3      # x1 = x2 & x3
+or x1, x2, x3       # x1 = x2 | x3
+xor x1, x2, x3      # x1 = x2 ^ x3
+```
+
+### Shifts
+
+```assembly
+sll x1, x2, x3      # x1 = x2 << x3
+srl x1, x2, x3      # x1 = x2 >> x3 (logical)
+sra x1, x2, x3      # x1 = x2 >> x3 (arithmetic)
 ```
 
 ### System Calls
 
-| Number | Name | Args | Description |
-|--------|------|------|-------------|
-| 93 | exit | a0=status | Terminate program |
-| 63 | read | a0=fd, a1=buf, a2=len | Read from file |
-| 64 | write | a0=fd, a1=buf, a2=len | Write to file |
+```assembly
+# Write to file descriptor
+li a0, 1            # fd = stdout (1)
+la a1, message      # buffer address
+li a2, 5            # length
+li a7, 64           # syscall: write
+ecall
 
-Put syscall number in `a7`, arguments in `a0-a2`, then execute `ecall`.
+# Exit
+li a0, 0            # exit code
+li a7, 93           # syscall: exit
+ecall
+```
 
-## Example Programs
+## Registers (ABI Names)
 
-### Fibonacci
+| Name | Use | Preserved? |
+|------|-----|-----------|
+| x0 | zero (always 0) | - |
+| x1/ra | return address | Caller |
+| x2/sp | stack pointer | - |
+| x5/t0-x7/t2 | temporaries | Caller |
+| x10/a0-x11/a1 | function args/return | Caller |
+| x12-17 | more args | Caller |
+| x27-31 | saved (s0-s4) | Callee |
+
+For simple programs, use any registers. This matters for function calls.
+
+## Data Directives
+
+| Directive | Example | Result |
+|-----------|---------|--------|
+| .word | .word 42 | 4 bytes: 42 |
+| .word | .word 1, 2, 3 | 3 x 4 bytes |
+| .half | .half 1000 | 2 bytes: 1000 |
+| .byte | .byte 65 | 1 byte: 65 ('A') |
+| .ascii | .ascii "hi" | 2 bytes: "hi" (no null) |
+| .asciiz | .asciiz "hi" | 3 bytes: "hi\0" |
+| .space | .space 100 | 100 zero bytes |
+
+## Sections
 
 ```assembly
-.text
+.text               # Code section (default)
 _start:
-    li a0, 10           # Calculate fib(10)
-    call fibonacci
+    # instructions here
 
-    # Exit with result
-    li a7, 93
-    ecall
+.data               # Initialized data
+values:
+    .word 1, 2, 3
 
-fibonacci:
-    li t0, 0            # fib(0) = 0
-    li t1, 1            # fib(1) = 1
-    li t2, 0            # counter
+.rodata             # Read-only data (strings, constants)
+message:
+    .asciiz "hello"
 
-fib_loop:
-    bge t2, a0, fib_done
-    add t3, t0, t1      # next = a + b
-    mv t0, t1           # a = b
-    mv t1, t3           # b = next
-    addi t2, t2, 1      # counter++
-    j fib_loop
-
-fib_done:
-    mv a0, t0
-    ret
+.bss                # Uninitialized data (not supported in emulator)
+buffer:
+    .space 100
 ```
 
-### Array Sum
+## Project Structure
 
-```assembly
-.text
-_start:
-    la a0, array        # array address
-    li a1, 5            # array length
-    call sum_array
-
-    # Exit with sum in a0
-    li a7, 93
-    ecall
-
-sum_array:
-    li t0, 0            # sum = 0
-    li t1, 0            # i = 0
-
-sum_loop:
-    bge t1, a1, sum_done
-    slli t2, t1, 2      # offset = i * 4
-    add t2, a0, t2      # address = base + offset
-    lw t3, 0(t2)        # load array[i]
-    add t0, t0, t3      # sum += array[i]
-    addi t1, t1, 1      # i++
-    j sum_loop
-
-sum_done:
-    mv a0, t0
-    ret
-
-.data
-array:
-    .word 10, 20, 30, 40, 50
 ```
-
-## Troubleshooting
-
-**Build fails**: Ensure G++ supports C++17 (GCC 7+)
-```bash
-g++ --version
+riscv-student-pack/
+|-- assembler/
+|   |-- riscv_assembler     Use this
+|   '-- [source files]
+|-- emulator/
+|   |-- riscv_emulator      Use this
+|   '-- [source files]
+|-- tests/                  Explore examples here
+|-- Makefile
+|-- README.md               Full documentation
+'-- QUICKSTART.md           This file
 ```
-
-**Segmentation fault**: Check memory addresses and alignment
-```bash
-./emulator/riscv_emulator --debug program.bin  # See execution trace
-```
-
-**Label errors**: Use `--debug` to see symbol resolution
-```bash
-./assembler/riscv_assembler --debug program.s program.bin
-```
-
-**Tests fail**: Clean and rebuild
-```bash
-make clean-all
-make test
-```
-
-## Next Steps
-
-- See [README.md](README.md) for architecture and design details
-- Check `assembler/tests/` and `emulator/tests/` for more examples
-- Run `make help` to see all available targets
-- Explore section support with `.section` directive
 
 ## Getting Help
 
-```bash
-make help                                    # Show all make targets
-./assembler/riscv_assembler                  # Show assembler usage
-./emulator/riscv_emulator                    # Show emulator usage
-```
+- Full documentation: See README.md
+- Assembler details: See assembler/README.md
+- Emulator details: See emulator/README.md
+- Test examples: See tests/README.md
+- Build targets: Run `make help`
+- Trace assembly: Run `./assembler/riscv_assembler --debug`
+- Trace execution: Run `./emulator/riscv_emulator --debug`
 
-For detailed documentation on design choices, OOP architecture, and implementation details, see [README.md](README.md).
+## What Works
+
+- All 32 RV32I base instructions
+- Pseudoinstructions (li, la, mv, call, ret, j, nop)
+- Forward and backward labels
+- Function calls with call/ret
+- Memory access (load/store)
+- System calls (exit, write, read)
+- Debug mode for both tools
+
+## What Does Not Work
+
+- Floating point (requires RV32F)
+- Atomics (requires RV32A)
+- Multiplication/division (requires RV32M)
+- Compressed instructions (requires RVC)
+
+RV32I is the baseline. Everything above requires extensions.
+
+## Next Steps
+
+You now know enough to write real RISC-V programs. Go build something!

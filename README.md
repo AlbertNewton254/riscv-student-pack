@@ -1,616 +1,306 @@
 # RISC-V Student Pack
 
-Educational toolkit for learning RISC-V: assembler and emulator in modern C++.
+Educational toolkit for learning RISC-V: assembler and emulator in modern C++17.
 
-> **Just want to get started?** See [QUICKSTART.md](QUICKSTART.md) for immediate usage instructions.
+## Brief Description
 
-## Overview
+The RISC-V Student Pack provides two complementary tools for learning assembly language programming:
 
-Two complementary tools for RISC-V assembly programming:
+- **Assembler**: Two-pass assembler translating RV32I assembly to flat binary executables. Implements symbol resolution, instruction encoding, and pseudoinstruction expansion.
+- **Emulator**: Instruction simulator executing RV32I binaries with full base integer instruction set and Linux ABI syscalls.
 
-**Assembler**: Two-pass assembler translating RV32I assembly to binaries.
-First pass resolves labels, second pass encodes instructions.
+Both tools are written in modern C++17 with object-oriented design for clarity, safety, and extensibility.
 
-**Emulator**: Instruction simulator executing RV32I binaries.
-Implements base integer instructions with Linux ABI syscalls.
-
-Both written in modern C++ (C++17) with object-oriented design for clarity, safety, and extensibility.
-
----
-
-## Design Choices
-
-### Object-Oriented Architecture
-
-**Encapsulation**: CPU, Memory, Instruction, and Assembler classes with private state.
-Clear interfaces, controlled access through public methods.
-
-**RAII Resource Management**: Constructors/destructors handle initialization and cleanup.
-Automatic resource safety, no manual memory management.
-
-**Type-Safe Containers**:
-- `std::array<uint32_t, 32>` for CPU registers (fixed size, bounds-checked)
-- `std::vector` for dynamic label storage and memory
-- `std::map` for symbol table (efficient lookups)
-
-No arbitrary limits, compile-time safety where possible.
-
-**Modern C++ Practices**:
-- Range-based for loops for clarity
-- Boolean return types instead of error codes
-- Method chaining where appropriate
-- Const correctness throughout
-
-### Assembler Architecture
-
-**Two-Pass Design**:
-- Pass 1: Build symbol table with `std::map<std::string, uint32_t>`, calculate addresses
-- Pass 2: Encode instructions with resolved symbols
-
-**Assembler Class**: Central object managing the assembly process.
-Encapsulates symbol table, current section, address tracking.
-
-**Binary Output**: Flat binaries (not ELF) for simplicity.
-What you see is what executes.
-
-**Pseudoinstructions**: `li`, `la`, `mv`, `nop`, `call`, `ret`, `j` expand to RV32I.
-Idiomatic assembly with function call support, pure execution.
-
-**Sections**: `.text` and `.data` with automatic address calculation.
-
-### Emulator Architecture
-
-**CPU Class**: Encapsulates registers (`std::array<uint32_t, 32>`), PC, and execution state.
-Methods for register access, instruction fetch/decode/execute.
-
-**Memory Class**: Manages RAM with `std::vector<uint8_t>`.
-Bounds checking, alignment validation, separate read/write methods.
-
-**Instruction Class**: Decodes and represents RISC-V instructions.
-Type-safe format detection, immediate value extraction.
-
-**Fetch-Decode-Execute**: Clean separation with dedicated methods.
-16 MiB RAM, stack at 0x80000000 (conventional RISC-V layout).
-
-**Syscalls**: Minimal Linux ABI set for basic I/O.
-
-**Debugging**: Register dumps on errors.
-
-### RV32I Focus
-
-Both tools implement the complete RV32I base (32 instructions).
-
----
-
-## Features
-
-### Assembler
-
-- All RV32I instructions (R, I, S, B, U, J formats)
-- Pseudoinstructions: `li`, `la`, `mv`, `nop`, `call`, `ret`, `j`
-- Full GAS-compatible `.section` directive support with arbitrary section names
-- Data directives: `.ascii`, `.asciiz`, `.byte`, `.half`, `.word`, `.space`
-- Forward/backward label references
-- Accepts `.s` and `.asm` files
-- **Debug mode**: Optional `--debug` flag for detailed assembly trace output
-
-### Emulator
-
-- Full RV32I execution
-- Linux ABI syscalls: exit, read, write, openat, close, fstat, brk
-- 16 MiB RAM, configurable load address
-- Register dumps on errors
-- Standard file I/O
-- **Debug mode**: Optional `--debug` flag for fetch/decode/execute tracing
-
----
-
-## Technical Reference
-
-For usage examples and quick command reference, see [QUICKSTART.md](QUICKSTART.md).
-
-### Instruction Set (RV32I)
-
-| Type | Instructions |
-|------|-------------|
-| **Arithmetic** | `add`, `sub`, `addi` |
-| **Logical** | `and`, `or`, `xor`, `andi`, `ori`, `xori` |
-| **Shifts** | `sll`, `srl`, `sra`, `slli`, `srli`, `srai` |
-| **Comparison** | `slt`, `sltu`, `slti`, `sltiu` |
-| **Branches** | `beq`, `bne`, `blt`, `bge`, `bltu`, `bgeu` |
-| **Jumps** | `jal`, `jalr` |
-| **Loads** | `lb`, `lh`, `lw`, `lbu`, `lhu` |
-| **Stores** | `sb`, `sh`, `sw` |
-| **Upper Immediate** | `lui`, `auipc` |
-| **System** | `ecall` |
-| **Pseudo** | `li`, `la`, `mv`, `nop`, `call`, `ret`, `j` |
-
-### System Calls
-
-| Syscall | Number | Usage |
-|---------|--------|-------|
-| `exit` | 93 | Terminate program with status code |
-| `read` | 63 | Read from file descriptor |
-| `write` | 64 | Write to file descriptor |
-| `openat` | 56 | Open file (relative to directory fd) |
-| `close` | 57 | Close file descriptor |
-| `fstat` | 80 | Query file status |
-| `brk` | 214 | Adjust program break (returns -ENOMEM) |
-
-Unimplemented syscalls return -ENOSYS.
-
-### Assembler Directives
-
-| Directive | Description | Example |
-|-----------|-------------|---------|
-| `.text` | Switch to code section | `.text` |
-| `.data` | Switch to data section | `.data` |
-| `.rodata` | Switch to read-only data section | `.rodata` |
-| `.bss` | Switch to uninitialized data section | `.bss` |
-| `.section <name>` | Switch to arbitrary section (GAS-compatible) | `.section .text.startup` |
-| `.ascii` | Store ASCII string | `.ascii "hello"` |
-| `.asciiz` | Store null-terminated string | `.asciiz "world"` |
-| `.byte` | Store 8-bit value(s) | `.byte 42, 0x2A` |
-| `.half` | Store 16-bit value(s) | `.half 1000` |
-| `.word` | Store 32-bit value(s) | `.word 0x12345678` |
-| `.space` | Reserve N bytes | `.space 100` |
-
-#### Section Directive Support
-
-The assembler now supports full GNU Assembler (GAS) compatible `.section` directives, allowing you to specify arbitrary section names. This is essential for compatibility with standard RISC-V toolchains and linker scripts.
-
-**Standard sections:**
-- `.text` - Executable code section
-- `.data` - Initialized data section
-- `.rodata` - Read-only data section (constants, strings)
-- `.bss` - Uninitialized data section (zero-initialized)
-
-**Custom subsections:**
-You can create custom subsections with any name, following GAS conventions:
-- `.text.startup` - Startup/initialization code
-- `.text.hot` - Hot/frequently executed code
-- `.data.local` - Local data
-- Any custom name like `.section .my_section`
-
-**Example:**
-```assembly
-.section .text
-main:
-    addi x1, x0, 1
-
-.section .rodata
-constant:
-    .word 42
-
-.section .text.startup
-_init:
-    addi x2, x0, 2
-```
-
-The assembler automatically determines section types based on their names (e.g., `.text.*` sections are treated as code sections, `.data.*` as data sections).
-
----
-
-
-## Getting Started
-
-For quick setup and usage examples, see [QUICKSTART.md](QUICKSTART.md).
-
-This README focuses on architecture, design decisions, and implementation details.
-
----
-
-## Build System
-
-The project uses GNU Make with a hierarchical build structure. The root Makefile coordinates builds for both the assembler and emulator subdirectories.
-
-### Available Make Targets
-
-#### Build Targets
-
-**`make` or `make all`** (default)
-- Builds both assembler and emulator
-- Compiles all source files with optimizations (-O2)
-- Creates executables: `assembler/riscv_assembler` and `emulator/riscv_emulator`
-- Use this for normal development
-
-**`make assembler`**
-- Builds only the assembler
-- Useful when working exclusively on assembler features
-- Faster than full build
-
-**`make emulator`**
-- Builds only the emulator
-- Useful when working exclusively on emulator features
-- Faster than full build
-
-**`make debug`**
-- Builds both tools with debug symbols
-- Disables optimizations (-O0)
-- Enables debug macro (-DDEBUG)
-- Use with GDB for debugging: `gdb ./assembler/riscv_assembler`
-- Performs clean build automatically
-
-**`make release`**
-- Builds optimized release versions
-- Maximum optimization (-O3)
-- Defines NDEBUG to remove assertions
-- Use for production or performance testing
-- Performs clean build automatically
-
-#### Clean Targets
-
-**`make clean`**
-- Removes object files (*.o) from all directories
-- Keeps executables intact
-- Allows fast incremental rebuilds
-- Use between minor code changes
-- Example: Modify one source file, `make clean && make` to rebuild quickly
-
-**`make clean-all`**
-- Removes everything including executables
-- Deletes all .o files, test executables, and main executables
-- Ensures completely fresh build
-- Use when switching build configurations or troubleshooting
-- Use before commits to verify clean build
-
-#### Test Targets
-
-**`make test`**
-- Runs all unit tests (assembler + emulator)
-- Builds test executables if needed
-- Executes 10 assembler tests and 12 emulator tests
-- Returns non-zero exit code on any failure
-- Use in CI/CD pipelines
-
-**`make test-assembler`**
-- Runs only assembler unit tests
-- Tests label resolution, encoding, directives
-- 10 test suites covering all instruction formats
-
-**`make test-emulator`**
-- Runs only emulator unit tests
-- Tests CPU, memory, instruction execution
-- 12 test suites including syscall handling
-
-**`make unit-tests`**
-- Alias for `make test`
-- Provided for compatibility
-
-#### Code Quality Targets
-
-**`make format`**
-- Formats all C++ source and header files
-- Requires clang-format to be installed
-- Applies consistent style across codebase
-- Safe to run anytime (non-destructive)
-- Uses project's clang-format configuration
-
-**`make analyze`**
-- Runs static analysis on all source files
-- Requires cppcheck to be installed
-- Checks for potential bugs, memory leaks, style issues
-- Useful before committing code
-- Note: May report false positives
-
-#### Help Target
-
-**`make help`**
-- Displays all available targets with descriptions
-- Shows usage examples
-- Lists project structure
-- Run when exploring the build system
-
-### Build System Architecture
-
-**Hierarchical Structure**:
-- Root `Makefile` coordinates high-level targets
-- `assembler/Makefile` handles assembler-specific builds
-- `emulator/Makefile` handles emulator-specific builds
-- Each subdirectory can be built independently
-
-**Compilation Flags**:
-- `-Wall -Wextra -Werror`: All warnings enabled, treated as errors
-- `-std=c++17`: Modern C++ standard
-- `-O2`: Moderate optimization (default)
-- `-g`: Debug symbols included even in optimized builds
-
-**Dependency Tracking**:
-- Automatic recompilation when headers change
-- Pattern rules for .cpp → .o compilation
-- Explicit dependencies for complex modules
-
-**Parallel Builds**:
-```bash
-make -j4        # Build with 4 parallel jobs
-make -j$(nproc) # Use all available CPU cores
-```
-
-### Common Workflows
-
-**Development Cycle**:
-```bash
-make clean      # Remove old object files
-make -j4        # Fast parallel build
-make test       # Verify correctness
-```
-
-**Before Committing**:
-```bash
-make clean-all  # Complete clean
-make            # Verify clean build works
-make test       # Verify all tests pass
-make format     # Ensure consistent formatting
-make analyze    # Check for issues
-```
-
-**Debugging Build Issues**:
-```bash
-make clean-all  # Start completely fresh
-make V=1        # Verbose output (if supported)
-make assembler  # Build one component at a time
-make emulator
-```
-
-**Performance Testing**:
-```bash
-make release    # Build optimized version
-time ./emulator/riscv_emulator program.bin
-```
-
-**Working on Single Component**:
-```bash
-cd assembler/   # Enter subdirectory
-make            # Build just assembler
-make test       # Test just assembler
-make clean      # Clean just assembler
-```
-
-### Subdirectory Makefiles
-
-Each subdirectory (assembler/, emulator/) has its own Makefile with similar targets:
-
-- `make` or `make all` - Build main executable
-- `make test` - Build and run tests
-- `make clean` - Remove all build artifacts including executables
-- `make clean-soft` - Remove only object files (keep executables)
-- `make run PROGRAM=file` - Build and run with specific input
-- `make format` - Format code
-- `make analyze` - Static analysis
-- `make debug` - Debug build
-- `make release` - Release build
-
-**Subdirectory-specific examples**:
-```bash
-cd assembler/
-make run PROGRAM=test.s              # Assemble test.s to output.bin
-
-cd emulator/
-make run PROGRAM=output.bin          # Run output.bin
-```
-
----
-
-## Project Structure
+For quick start, see [QUICKSTART.md](QUICKSTART.md).
 
 ## Project Structure
 
 ```
 riscv-student-pack/
-├── assembler/              # Object-oriented two-pass assembler
-│   ├── include/
-│   │   └── assembler.hpp  # Assembler class, symbol table, data structures
-│   ├── src/
-│   │   ├── main.cpp       # Entry point and CLI
-│   │   ├── constructor.cpp # Assembler initialization
-│   │   ├── first_pass.cpp # Symbol table construction
-│   │   ├── second_pass.cpp # Instruction encoding
-│   │   ├── encode.cpp     # Instruction format encoding
-│   │   ├── expand_pseudoinstruction.cpp # Pseudoinstruction expansion
-│   │   ├── adjust_labels.cpp # Label address adjustment
-│   │   └── utils.cpp      # Parsing utilities
-│   └── tests/
-│       └── test_assembler.cpp # Unit tests with C++ assertions
-│
-├── emulator/              # Object-oriented RV32I instruction simulator
-│   ├── include/
-│   │   ├── cpu.hpp        # CPU class (registers as std::array, execution)
-│   │   ├── memory.hpp     # Memory class (bounds-checked access)
-│   │   └── instructions.hpp # Instruction class (decode/execute)
-│   ├── src/
-│   │   ├── main.cpp       # Entry point and CLI
-│   │   ├── cpu.cpp        # Fetch-decode-execute, register management
-│   │   ├── instructions.cpp # Instruction decoder and immediate extraction
-│   │   └── memory.cpp     # Memory operations with alignment checks
-│   └── tests/
-│       └── test_emulator.cpp # Comprehensive unit tests (12 test suites)
-│
-├── Makefile               # Root build configuration
-├── unit_tests.sh          # Automated test runner
-├── LICENSE                # MIT License
-└── README.md
+|-- assembler/               Two-pass RV32I assembler
+|   |-- Makefile
+|   |-- README.md
+|   |-- riscv_assembler      Executable
+|   |-- include/
+|   |   '-- assembler.hpp
+|   '-- src/
+|       |-- main.cpp
+|       |-- constructor.cpp
+|       |-- first_pass.cpp
+|       |-- second_pass.cpp
+|       |-- encode.cpp
+|       |-- expand_pseudoinstruction.cpp
+|       |-- adjust_labels.cpp
+|       '-- utils.cpp
+|
+|-- emulator/                RV32I instruction simulator
+|   |-- Makefile
+|   |-- README.md
+|   |-- riscv_emulator       Executable
+|   |-- include/
+|   |   |-- cpu.hpp
+|   |   |-- memory.hpp
+|   |   '-- instructions.hpp
+|   '-- src/
+|       |-- main.cpp
+|       |-- cpu.cpp
+|       |-- memory.cpp
+|       '-- instructions.cpp
+|
+|-- tests/                   Test infrastructure
+|   |-- Makefile
+|   |-- README.md
+|   |-- all_tests.sh
+|   |-- unit_tests.sh
+|   |-- integration_tests.sh
+|   |-- assembler/
+|   |   '-- test_assembler.cpp
+|   |-- emulator/
+|   |   '-- test_emulator.cpp
+|   '-- integration/
+|       '-- test_integration.cpp
+|
+|-- Makefile                 Root build configuration
+|-- README.md                This file
+|-- QUICKSTART.md            Quick start guide
+'-- LICENSE                  MIT License
 ```
 
----
+## Features
 
-## Implementation Highlights
+## Features
 
-### Modern C++ Features in Action
+### Assembler
 
-**CPU Registers**: `std::array<uint32_t, 32>` provides:
-- Fixed-size container (known at compile time)
-- Bounds checking with `.at()` method
-- Zero-cost abstraction over raw arrays
-- Iterator support for range-based loops
+The assembler translates RISC-V assembly language to machine code:
 
-**Memory Management**: `std::vector<uint8_t>` for RAM:
-- Automatic allocation/deallocation
-- Dynamic sizing based on requirements
-- Contiguous storage for cache efficiency
-- No manual memory management
+- All 32 RV32I base instructions (arithmetic, logical, shifts, comparisons, branches, jumps, loads, stores, upper immediates, system)
+- 7 pseudoinstructions: li, la, mv, nop, call, ret, j
+- GNU-compatible section directives (.text, .data, .rodata, .bss, .section)
+- Data directives (.ascii, .asciiz, .byte, .half, .word, .space)
+- Forward and backward label resolution
+- Debug mode with detailed output
+- Two-pass design: symbol resolution followed by code generation
 
-**Symbol Table**: `std::map<std::string, uint32_t>`:
-- Automatic ordering by label name
-- Logarithmic lookup time
-- Type-safe key-value pairs
+See [assembler/README.md](assembler/README.md) for detailed documentation.
 
-**Boolean Returns**: Methods return `bool` instead of error codes:
-- `decode()` returns true/false for success
-- `is_running()` checks CPU state
-- More idiomatic C++ style
+### Emulator
 
-**Object Lifecycle**:
-- Constructors initialize all state
-- Destructors automatically clean up
-- Copy/move semantics properly handled
-- No dangling pointers or resource leaks
+The emulator executes binary programs with full instruction simulation:
+
+- Full RV32I fetch-decode-execute pipeline
+- 32 registers with standard ABI names
+- 16 MiB configurable memory with bounds checking
+- Linux ABI syscalls: exit, read, write, openat, close, fstat, brk
+- Register dumps and stack traces on errors
+- Debug mode with instruction tracing
+- Alignment validation and error detection
+
+See [emulator/README.md](emulator/README.md) for detailed documentation.
 
 ### Testing
 
-Comprehensive unit test suites using C++ assertions:
+Comprehensive test suite covering all components:
 
-**Emulator Tests** (12 test suites):
-1. CPU initialization
-2. Memory operations (8/16/32-bit, alignment)
-3. Sign extension
-4. Instruction decoding
-5. Register operations
-6. ALU operations
-7. Load/store operations
-8. Branch operations
-9. System call operations
-10. Complete CPU step execution
-11. Complex instruction execution
-12. Memory layout validation
+- 10 assembler unit tests (label resolution, instruction encoding, pseudoinstructions, data directives, sections)
+- 12 emulator unit tests (CPU, memory, instructions, branches, jumps, syscalls)
+- Integration tests for end-to-end workflows
+- Test runners at all levels with shell scripts
+- Parallel build support with make -j
 
-**Assembler Tests**: Label resolution, instruction encoding, data directives.
+See [tests/README.md](tests/README.md) for detailed documentation.
 
-Run all tests: `./unit_tests.sh`
+## Documentation
 
----
+### Assembler
 
-## Debug Mode
+#### Instruction Set
 
-Both the assembler and emulator support a `--debug` flag for detailed execution tracing, useful for learning and troubleshooting.
+The assembler supports all 32 RV32I base instructions:
 
-### Assembler Debug Output
+- Arithmetic: add, sub, addi
+- Logical: and, or, xor, andi, ori, xori
+- Shifts: sll, srl, sra, slli, srli, srai
+- Comparison: slt, sltu, slti, sltiu
+- Branches: beq, bne, blt, bge, bltu, bgeu
+- Jumps: jal, jalr
+- Loads: lb, lh, lw, lbu, lhu
+- Stores: sb, sh, sw
+- Upper Immediate: lui, auipc
+- System: ecall, ebreak
 
-With `--debug`, the assembler displays:
-- Each line processed during assembly
-- Pseudoinstruction expansions
-- Detailed operand parsing breakdown
-- Section switches and label definitions
+#### Pseudoinstructions
 
-**Example:**
+Common pseudoinstructions expand to base RV32I:
+
+| Pseudo | Expands To | Purpose |
+|--------|-----------|---------|
+| li rd, imm | lui + addi or addi | Load immediate |
+| la rd, label | auipc + addi | Load address |
+| mv rd, rs | addi rd, rs, 0 | Copy register |
+| nop | addi x0, x0, 0 | No operation |
+| call label | jal ra, label | Call function |
+| ret | jalr x0, ra, 0 | Return from function |
+| j label | jal x0, label | Unconditional jump |
+
+#### Directives
+
+Section directives organize code and data:
+
+- .text - Code section (default)
+- .data - Initialized data
+- .rodata - Read-only data
+- .bss - Uninitialized data
+- .section <name> - Arbitrary section
+
+Data directives reserve and initialize memory:
+
+- .byte - 8-bit values
+- .half - 16-bit values
+- .word - 32-bit values
+- .ascii - String without null terminator
+- .asciiz - Null-terminated string
+- .space - Reserve bytes
+
+#### Usage
+
 ```bash
-./assembler/riscv_assembler --debug program.s program.bin
+./riscv_assembler input.s output.bin
+./riscv_assembler --debug input.s output.bin
 ```
 
-**Sample output:**
+### Emulator
+
+#### Instruction Execution
+
+The emulator implements a fetch-decode-execute pipeline:
+
+1. Fetch: Load instruction from memory at program counter
+2. Decode: Parse instruction format and extract operands
+3. Execute: Perform operation and update processor state
+4. Repeat until program exit or error
+
+#### Memory Layout
+
 ```
-Processed line: 'li x10, 42'
-Expanding pseudoinstruction: li -> addi x10, x0, 42
-DEBUG PARSING:
-  Function: encode
-  Instruction Type: I-type
-  rd=10, rs1=0, imm=42
+0x00000000 +----------------+
+           | .text          | Code section
+           | .data          | Initialized data
+           | .rodata        | Read-only data
+           +----------------+
+           | Heap           | Dynamic allocation
+           | (grows up)     |
+           |----------------|
+0x80000000 | Stack          | Function calls, locals
+           | (grows down)   |
+0xFFFFFFFF +----------------+
 ```
 
-### Emulator Debug Output
+#### Syscalls
 
-With `--debug`, the emulator shows:
-- **Fetch**: Current PC and raw instruction (hex)
-- **Decode**: Instruction name and format
-- **Execute**: Decoded operands and execution details
-- Register writes and memory operations
-- Branch/jump targets
+Linux ABI syscalls for I/O and process control:
 
-**Example:**
+| Number | Name | Arguments | Returns | Purpose |
+|--------|------|-----------|---------|---------|
+| 93 | exit | a0=code | - | Exit with status |
+| 63 | read | a0=fd, a1=buf, a2=len | count | Read from file |
+| 64 | write | a0=fd, a1=buf, a2=len | count | Write to file |
+| 56 | openat | a0=dirfd, a1=path, a2=flags | fd | Open file |
+| 57 | close | a0=fd | 0 | Close file |
+| 80 | fstat | a0=fd, a1=buf | 0 | Query file |
+| 214 | brk | a0=addr | new_brk | Heap control |
+
+#### Usage
+
 ```bash
-./emulator/riscv_emulator --debug program.bin
+./riscv_emulator program.bin
+./riscv_emulator --debug program.bin
 ```
 
-**Sample output:**
+### Testing
+
+#### Test Types
+
+- Unit tests: Individual component testing (assembler and emulator)
+- Integration tests: End-to-end workflows from assembly to execution
+
+#### Running Tests
+
+```bash
+make test              # All tests
+make test-assembler    # Assembler only
+make test-emulator     # Emulator only
+make test-integration  # Integration tests
 ```
---- Instruction Cycle ---
-Fetch: PC=0x00000000 Instruction=0x02a00513
-Decode: addi (I-type)
-Execute: rd=10 rs1=0 imm=42
-Executed: addi x10, x0, 42
+
+## Build System
+
+Build both tools from the root directory:
+
+```bash
+make                  # Build assembler and emulator
+make assembler        # Build assembler only
+make emulator         # Build emulator only
+make test            # Run all tests
+make clean           # Remove object files
+make clean-all       # Remove all build artifacts
+make help            # Show all targets
 ```
 
-**Use cases:**
-- Understanding instruction encoding
-- Debugging assembly programs
-- Learning RISC-V execution model
-- Verifying pseudoinstruction expansion
-- Tracing control flow
+Each component (assembler, emulator, tests) can be built independently with its own Makefile.
 
----
+## Design Philosophy
 
-## Future Work
+This project demonstrates professional software engineering in C++:
 
-### Near-Term
+### Architecture
 
-**RV32M Extension**: Multiplication and division instructions.
-Completes the baseline embedded profile. Could be implemented as additional instruction classes.
+- Object-Oriented: CPU, Memory, Instruction, Assembler classes with clear responsibilities
+- Encapsulation: Private state, public interfaces, controlled access
+- RAII: Constructors/destructors handle resource management automatically
+- Type Safety: std::array, std::vector, std::map instead of raw pointers
 
-**More Syscalls**: Add `lseek`, directory ops, `mmap`.
-Enables more realistic programs. Extend syscall handling in CPU class.
+### Code Quality
 
-**Better Errors**: Line numbers in assembler with source tracking.
-Instruction tracing in emulator with debug mode.
+- Modern C++17: Range-based loops, const correctness, move semantics
+- Defensive: Bounds checking, alignment validation, comprehensive error handling
+- Testable: 22+ unit tests with full coverage
+- Debuggable: Optional debug mode for tracing execution
 
-### Medium-Term
+### Learning Focus
 
-**ELF Format**: Generate standard object files.
-Interop with GNU toolchain and GDB. Consider using ELFIO library.
+- Clear separation of concerns
+- Readable code with explanatory comments
+- Realistic instruction set (RV32I is baseline for all RISC-V)
+- Practical syscall implementation for real-world integration
 
-**Multi-File Assembly**: Separate compilation and linking.
-Mirrors real development workflows. Would require linker implementation.
+## Prerequisites
 
-**Disassembler**: Binary to assembly converter.
-Aids debugging, demonstrates reversibility. Reverse the Instruction class logic.
+- G++ with C++17 support (GCC 7.0 or later)
+- GNU Make
+- Linux operating system (for syscalls)
 
-### Long-Term
+## Getting Started
 
-**Extensions**: Floating-point (F, D), atomics (A), compressed (C).
-Could be implemented as derived instruction classes.
-
-**Performance Tools**: Cycle counting, cache simulation.
-Microarchitecture teaching. Add instrumentation to CPU class.
-
-**Cross-Platform**: Abstract syscalls for Windows/macOS.
-Strategy pattern for syscall implementation.
-
-**Template-Based Instruction Dispatch**: Compile-time optimization using C++ templates.
-Zero-overhead abstractions for instruction execution.
-
-These are natural evolution paths, not requirements.
-Suitable as student projects or incremental improvements.
-The object-oriented design makes extension straightforward.
-
----
+1. Read [QUICKSTART.md](QUICKSTART.md) for immediate usage (5 minutes)
+2. Study [assembler/README.md](assembler/README.md) for assembly details
+3. Study [emulator/README.md](emulator/README.md) for execution details
+4. Review [tests/README.md](tests/README.md) for test examples
+5. Run `make help` for all build targets
 
 ## Contributing
 
-Contributions welcome! Especially:
+Contributions welcome! Areas of interest:
 
 - Test cases and example programs
 - Documentation and tutorials
 - Bug reports with reproducible cases
-- Performance improvements that maintain clarity
+- Performance improvements
 
-Open an issue before major changes.
-
-**Documentation Structure**:
-- [QUICKSTART.md](QUICKSTART.md) - Getting started, usage, examples
-- [README.md](README.md) - Architecture, design decisions, implementation
-
----
+Open an issue before making major changes.
 
 ## License
 
-MIT License. See [LICENSE](./LICENSE).
+MIT License. See [LICENSE](./LICENSE) for details.
 
-Free to use, modify, and extend for any purpose.
+Free to use, modify, and extend for educational and other purposes.
