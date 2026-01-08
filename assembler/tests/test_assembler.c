@@ -73,7 +73,7 @@ static void test_encode_functions(void) {
 
 	/* Test encode_s */
 	instr = encode_s(4, 3, 2, 0x2, 0x23);
-	assert(instr == 0x00311223); /* sw x3, 4(x2) */
+	assert(instr == 0x00312223); /* sw x3, 4(x2) */
 
 	/* Test encode_b */
 	instr = encode_b(8, 3, 2, 0x0, 0x63);
@@ -84,8 +84,8 @@ static void test_encode_functions(void) {
 	assert(instr == 0x123450B7); /* lui x1, 0x12345 */
 
 	/* Test encode_j */
-	instr = encode_j(2048, 1, 0x6F);
-	assert(instr == 0x400000EF); /* jal x1, 2048 */
+	instr = encode_j(1024, 1, 0x6F);
+	assert(instr == 0x400000EF); /* jal x1, 1024 */
 
 	printf("\tOK all encode functions work\n");
 }
@@ -120,16 +120,16 @@ static void test_parse_escaped_string(void) {
 	uint8_t output[64];
 
 	size_t len = parse_escaped_string(input, NULL);
-	assert(len == 20); /* Count mode */
+	assert(len == 18); /* Count mode */
 
 	len = parse_escaped_string(input, output);
-	assert(len == 20);
+	assert(len == 18);
 
 	/* Verify specific characters */
 	assert(output[5] == '\n');
 	assert(output[11] == '\t');
 	assert(output[12] == '"');
-	assert(output[16] == '"');
+	assert(output[17] == '"');
 
 	/* Test simple string */
 	const char *simple = "Hello";
@@ -249,62 +249,58 @@ static void test_first_pass_basic(void) {
 	printf("\tOK first pass works\n");
 }
 
+static void parse_instruction_for_test(const char *input, char *op, char *a1, char *a2, char *a3) {
+	memset(op, 0, 16);
+	memset(a1, 0, 32);
+	memset(a2, 0, 32);
+	memset(a3, 0, 32);
+
+	char buffer[128];
+	strncpy(buffer, input, sizeof(buffer) - 1);
+	buffer[sizeof(buffer) - 1] = '\0';
+
+	char *args = strchr(buffer, ' ');
+	if (!args) {
+		strcpy(op, buffer);
+		return;
+	}
+
+	strncpy(op, buffer, args - buffer);
+	op[args - buffer] = '\0';
+
+	char *ptr = args + 1;
+	char *comma1 = strchr(ptr, ',');
+	char *comma2 = comma1 ? strchr(comma1 + 1, ',') : NULL;
+
+	if (!comma1) {
+		strcpy(a1, trim(ptr));
+	} else if (!comma2) {
+		*comma1 = '\0';
+		strcpy(a1, trim(ptr));
+		strcpy(a2, trim(comma1 + 1));
+	} else {
+		*comma1 = '\0';
+		strcpy(a1, trim(ptr));
+
+		char *middle = comma1 + 1;
+		*comma2 = '\0';
+		strcpy(a2, trim(middle));
+		strcpy(a3, trim(comma2 + 1));
+	}
+}
+
 static void test_instruction_parsing(void) {
 	printf("Test 9: Instruction argument parsing...\n");
 
-	/* Test parse_simple_args from first_pass.c */
-	/* We need to test the parsing logic used in second_pass.c */
-
 	char op[16], a1[32], a2[32], a3[32];
 
-	/* Simulate parse_instruction_args behavior */
-	void test_parse(const char *input) {
-		memset(op, 0, sizeof(op));
-		memset(a1, 0, sizeof(a1));
-		memset(a2, 0, sizeof(a2));
-		memset(a3, 0, sizeof(a3));
-
-		char *args = strchr(input, ' ');
-		if (!args) {
-			strcpy(op, input);
-			return;
-		}
-
-		strncpy(op, input, args - input);
-		op[args - input] = '\0';
-
-		/* Simple parsing for test */
-		char *ptr = args + 1;
-		char *comma1 = strchr(ptr, ',');
-		char *comma2 = comma1 ? strchr(comma1 + 1, ',') : NULL;
-
-		if (!comma1) {
-			strcpy(a1, trim(ptr));
-		} else if (!comma2) {
-			*comma1 = '\0';
-			strcpy(a1, trim(ptr));
-			strcpy(a2, trim(comma1 + 1));
-		} else {
-			*comma1 = '\0';
-			strcpy(a1, trim(ptr));
-
-			char *middle = comma1 + 1;
-			*comma2 = '\0';
-			strcpy(a2, trim(middle));
-			strcpy(a3, trim(comma2 + 1));
-		}
-	}
-
-	/* Test cases */
-	char test1[] = "add x1, x2, x3";
-	test_parse(test1);
+	parse_instruction_for_test("add x1, x2, x3", op, a1, a2, a3);
 	assert(strcmp(op, "add") == 0);
 	assert(strcmp(a1, "x1") == 0);
 	assert(strcmp(a2, "x2") == 0);
 	assert(strcmp(a3, "x3") == 0);
 
-	char test2[] = "addi x1, x2, 42";
-	test_parse(test2);
+	parse_instruction_for_test("addi x1, x2, 42", op, a1, a2, a3);
 	assert(strcmp(op, "addi") == 0);
 	assert(strcmp(a1, "x1") == 0);
 	assert(strcmp(a2, "x2") == 0);
