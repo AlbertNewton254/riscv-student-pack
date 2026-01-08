@@ -1,6 +1,6 @@
 # RISC-V Student Pack
 
-Educational toolkit for learning RISC-V: assembler and emulator in C.
+Educational toolkit for learning RISC-V: assembler and emulator in modern C++ (previously in C).
 
 ## Overview
 
@@ -12,11 +12,22 @@ First pass resolves labels, second pass encodes instructions.
 **Emulator**: Instruction simulator executing RV32I binaries.
 Implements base integer instructions with Linux ABI syscalls.
 
-Both written in portable C for clarity and extensibility.
+Both written in modern C++ (C++17) for clarity, safety, and extensibility.
 
 ---
 
 ## Design Choices
+
+### Modern C++ Features
+
+**Smart Pointers**: RAII-based file management with `std::unique_ptr`.
+Automatic resource cleanup, no manual fclose() needed.
+
+**Dynamic Containers**: `std::vector` for label storage.
+No arbitrary limits, grows as needed.
+
+**Type Safety**: C++ standard library headers and stricter type checking.
+Catch errors at compile time.
 
 ### Assembler
 
@@ -121,7 +132,7 @@ Unimplemented syscalls return -ENOSYS.
 
 ### Prerequisites
 
-- GCC or compatible C compiler
+- G++ with C++17 support (GCC 7+)
 - GNU Make
 - Linux (for syscalls)
 
@@ -158,30 +169,30 @@ Test:
 riscv-student-pack/
 ├── assembler/              # Two-pass assembler implementation
 │   ├── include/
-│   │   └── assembler.h    # Public API and data structures
+│   │   └── assembler.hpp  # Public API and data structures
 │   ├── src/
-│   │   ├── main.c         # Entry point and CLI
-│   │   ├── first_pass.c   # Symbol table construction
-│   │   ├── second_pass.c  # Instruction encoding
-│   │   ├── encode.c       # Instruction format encoding
-│   │   ├── expand_pseudoinstruction.c
-│   │   ├── adjust_labels.c
-│   │   └── utils.c        # Parsing utilities
+│   │   ├── main.cpp       # Entry point and CLI
+│   │   ├── first_pass.cpp # Symbol table construction
+│   │   ├── second_pass.cpp # Instruction encoding
+│   │   ├── encode.cpp     # Instruction format encoding
+│   │   ├── expand_pseudoinstruction.cpp
+│   │   ├── adjust_labels.cpp
+│   │   └── utils.cpp      # Parsing utilities
 │   └── tests/
-│       └── test_assembler.c
+│       └── test_assembler.cpp
 │
 ├── emulator/              # RV32I instruction simulator
 │   ├── include/
-│   │   ├── cpu.h          # CPU state and control
-│   │   ├── memory.h       # Memory subsystem
-│   │   └── instructions.h # Instruction decoder
+│   │   ├── cpu.hpp        # CPU state and control
+│   │   ├── memory.hpp     # Memory subsystem
+│   │   └── instructions.hpp # Instruction decoder
 │   ├── src/
-│   │   ├── main.c         # Entry point and CLI
-│   │   ├── cpu.c          # Fetch-decode-execute loop
-│   │   ├── instructions.c # Instruction implementations
-│   │   └── memory.c       # Memory operations
+│   │   ├── main.cpp       # Entry point and CLI
+│   │   ├── cpu.cpp        # Fetch-decode-execute loop
+│   │   ├── instructions.cpp # Instruction implementations
+│   │   └── memory.cpp     # Memory operations
 │   └── tests/
-│       └── test_emulator.c
+│       └── test_emulator.cpp
 │
 ├── Makefile               # Root build configuration
 ├── unit_tests.sh          # Test runner
