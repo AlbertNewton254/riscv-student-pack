@@ -14,24 +14,19 @@ emulator:
 	@echo "Building RISC-V Emulator..."
 	@cd emulator && $(MAKE) all
 
-# Clean everything
+# Clean object files (keep executables for fast rebuilds)
 clean:
-	@echo "Cleaning build artifacts..."
-	@cd assembler && $(MAKE) clean 2>/dev/null || true
-	@cd emulator && $(MAKE) clean 2>/dev/null || true
+	@echo "Cleaning object files..."
+	@cd assembler && $(MAKE) clean-soft 2>/dev/null || true
+	@cd emulator && $(MAKE) clean-soft 2>/dev/null || true
 	@rm -f *.bin *.s 2>/dev/null || true
 
-# Deep clean (including executables)
+# Deep clean (remove everything including executables)
 clean-all:
 	@echo "Cleaning all files including executables..."
 	@cd assembler && $(MAKE) clean 2>/dev/null || true
 	@cd emulator && $(MAKE) clean 2>/dev/null || true
-	@rm -f assembler/riscv_assembler 2>/dev/null || true
-	@rm -f assembler/test_assembler 2>/dev/null || true
-	@rm -f emulator/riscv_emulator 2>/dev/null || true
-	@rm -f emulator/test_emulator 2>/dev/null || true
 	@rm -f *.bin *.s 2>/dev/null || true
-	@find . -name "*.o" -delete 2>/dev/null || true
 
 # Run tests
 test: test-assembler test-emulator
@@ -79,7 +74,7 @@ help:
 	@echo "  all           - Build both assembler and emulator (default)"
 	@echo "  assembler     - Build only the assembler"
 	@echo "  emulator      - Build only the emulator"
-	@echo "  clean         - Clean build artifacts"
+	@echo "  clean         - Clean object files (keep executables for fast rebuilds)"
 	@echo "  clean-all     - Clean everything including executables"
 	@echo "  test          - Run all tests"
 	@echo "  test-assembler - Run assembler tests"

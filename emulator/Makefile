@@ -68,11 +68,11 @@ run: $(EXEC)
 	fi
 	./$(EXEC) $(PROGRAM)
 
-# Clean build files
+# Clean everything (including executables)
 clean:
 	rm -f $(EXEC) $(TEST_EXEC) *.o $(SRC_DIR)/*.o tests/*.o
 
-# Clean soft (keep executables)
+# Clean object files only (keep executables for fast rebuilds)
 clean-soft:
 	rm -f *.o $(SRC_DIR)/*.o tests/*.o
 
@@ -98,8 +98,8 @@ help:
 	@echo "  all       - Build the emulator (default)"
 	@echo "  test      - Build and run unit tests"
 	@echo "  run       - Run the emulator with PROGRAM variable"
-	@echo "  clean     - Remove build artifacts"
-	@echo "  clean-soft - Remove object files only (keep executables)"
+	@echo "  clean     - Remove everything (including executables)"
+	@echo "  clean-soft - Remove object files only (keep executables for fast rebuilds)"
 	@echo "  format    - Format source code"
 	@echo "  analyze   - Run static analysis"
 	@echo "  debug     - Build with debug symbols"
