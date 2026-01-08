@@ -38,7 +38,6 @@ emulator/
 
 ### Architecture
 
-### Architecture
 
 #### Fetch-Decode-Execute Pipeline
 

@@ -65,8 +65,6 @@ riscv-student-pack/
 
 ## Features
 
-## Features
-
 ### Assembler
 
 The assembler translates RISC-V assembly language to machine code:
