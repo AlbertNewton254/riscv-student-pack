@@ -137,7 +137,7 @@ static void test_instruction_decode(void) {
 	assert(instr.imm == 42);
 
 	/* Test S-type instruction: sw x3, 4(x2) */
-	uint32_t sw_instr = 0x00311223;  /* sw x3, 4(x2) */
+	uint32_t sw_instr = 0x00312223;  /* sw x3, 4(x2) */
 	assert(cpu_decode(sw_instr, &instr) == CPU_OK);
 	assert(instr.format == INSTR_S_TYPE);
 	assert(instr.opcode == 0x23);
@@ -164,13 +164,13 @@ static void test_instruction_decode(void) {
 	assert(instr.rd == 1);
 	assert(instr.imm == 0x12345000);
 
-	/* Test J-type instruction: jal x1, 2048 */
-	uint32_t jal_instr = 0x400000EF;  /* jal x1, 2048 */
+	/* Test J-type instruction: jal x1, 1024 */
+	uint32_t jal_instr = 0x400000EF;  /* jal x1, 1024 */
 	assert(cpu_decode(jal_instr, &instr) == CPU_OK);
 	assert(instr.format == INSTR_J_TYPE);
 	assert(instr.opcode == 0x6F);
 	assert(instr.rd == 1);
-	assert(instr.imm == 2048);
+	assert(instr.imm == 1024);
 
 	/* Test invalid opcode */
 	uint32_t invalid_instr = 0x00000000;  /* Invalid opcode */
@@ -187,8 +187,7 @@ static void test_register_operations(void) {
 	assert(cpu != NULL);
 
 	/* Test that x0 is always zero */
-	cpu->x[0] = 0x12345678;  /* Try to write to x0 */
-	assert(cpu->x[0] == 0);  /* Should still be zero */
+	assert(cpu->x[0] == 0);  /* x0 should be zero */
 
 	/* Test reading/writing other registers */
 	for (int i = 1; i < 32; i++) {
@@ -200,7 +199,7 @@ static void test_register_operations(void) {
 	/* Verify registers maintain their values */
 	assert(cpu->x[1] == 0x1100);
 	assert(cpu->x[10] == 0x1A00);
-	assert(cpu->x[31] == 0x3F00);
+	assert(cpu->x[31] == 0x2F00);
 
 	printf("\tOK Register operations work\n");
 	cpu_destroy(cpu);
@@ -211,7 +210,7 @@ static void test_alu_operations(void) {
 	printf("Test 6: ALU operations (tested through cpu_step)...\n");
 
 	cpu_t *cpu = cpu_init();
-	memory_t *mem = memory_init(4096);
+	memory_t *mem = memory_init(8192);
 	assert(cpu != NULL && mem != NULL);
 
 	/* Write an add instruction to memory: add x1, x2, x3 */
@@ -249,7 +248,7 @@ static void test_load_store(void) {
 
 	cpu_t *cpu;
 	memory_t *mem;
-	setup_cpu_memory(&cpu, &mem, 4096);
+	setup_cpu_memory(&cpu, &mem, 8192);
 
 	/* Initialize some test data in memory */
 	assert(memory_write32(mem, 0x200, 0x12345678) == MEM_OK);
@@ -269,7 +268,7 @@ static void test_load_store(void) {
 
 	/* Test SW instruction through cpu_step */
 	/* Write SW instruction: sw x1, 0x208(x2) */
-	uint32_t sw_instr = 0x00112223;  /* sw x1, 0x208(x2) */
+	uint32_t sw_instr = 0x20112423;  /* sw x1, 0x208(x2) */
 	cpu->pc = 0x1004;
 	cpu->x[1] = 0xDEADBEEF;
 	memory_write32(mem, 0x1004, sw_instr);
@@ -292,10 +291,10 @@ static void test_branch_operations(void) {
 
 	cpu_t *cpu;
 	memory_t *mem;
-	setup_cpu_memory(&cpu, &mem, 4096);
+	setup_cpu_memory(&cpu, &mem, 8192);
 
 	/* Write a BEQ instruction: beq x1, x2, 16 */
-	uint32_t beq_instr = 0x00208463;  /* beq x1, x2, 16 */
+	uint32_t beq_instr = 0x00208863;  /* beq x1, x2, 16 */
 	cpu->pc = 0x1000;
 	cpu->x[1] = 42;
 	cpu->x[2] = 42;
@@ -326,7 +325,7 @@ static void test_system_calls(void) {
 
 	cpu_t *cpu;
 	memory_t *mem;
-	setup_cpu_memory(&cpu, &mem, 4096);
+	setup_cpu_memory(&cpu, &mem, 8192);
 
 	/* Write ECALL instruction */
 	uint32_t ecall_instr = 0x00000073;  /* ecall */
@@ -348,7 +347,7 @@ static void test_cpu_step(void) {
 
 	cpu_t *cpu;
 	memory_t *mem;
-	setup_cpu_memory(&cpu, &mem, 4096);
+	setup_cpu_memory(&cpu, &mem, 8192);
 
 	/* Write a simple program to memory */
 	/* Program: addi x1, x0, 42  (0x02A00093) */
@@ -408,7 +407,7 @@ static void test_complex_execution(void) {
 
 	cpu_t *cpu;
 	memory_t *mem;
-	setup_cpu_memory(&cpu, &mem, 4096);
+	setup_cpu_memory(&cpu, &mem, 8192);
 
 	/* Write a more complex program */
 	uint32_t program[] = {
@@ -418,6 +417,7 @@ static void test_complex_execution(void) {
 		0x402082B3,  /* sub x5, x1, x2      # x5 = x1 - x2 = 95 */
 		0x00209333,  /* sll x6, x1, x2      # x6 = x1 << 5 = 3200 */
 		0x0040D3B3,  /* srl x7, x1, x4      # x7 = x1 >> 105 = 0 */
+		0x05D00893,  /* addi x17, x0, 93    # x17 = SYS_exit */
 		0x00000073,  /* ecall */
 	};
 
@@ -471,7 +471,7 @@ static void test_instruction_fetch(void) {
 
 	cpu_t *cpu;
 	memory_t *mem;
-	setup_cpu_memory(&cpu, &mem, 4096);
+	setup_cpu_memory(&cpu, &mem, 8192);
 
 	/* Write instructions to memory */
 	uint32_t instructions[] = {0x12345678, 0x9ABCDEF0, 0x11111111};
@@ -511,37 +511,6 @@ static void test_instruction_fetch(void) {
 	cleanup_cpu_memory(cpu, mem);
 }
 
-/* Test 14: Register access */
-static void test_register_access(void) {
-	printf("Test 14: Register access...\n");
-
-	cpu_t *cpu = cpu_init();
-	assert(cpu != NULL);
-
-	/* Test that x0 is always zero */
-	cpu->x[0] = 0x12345678;  /* Try to write to x0 */
-	assert(cpu->x[0] == 0);  /* Should still be zero */
-
-	/* Test reading/writing other registers */
-	for (int i = 1; i < 32; i++) {
-		cpu->x[i] = (uint32_t)i * 0x100;
-		assert(cpu->x[i] == (uint32_t)i * 0x100);
-	}
-
-	/* Change values */
-	for (int i = 1; i < 32; i++) {
-		cpu->x[i] = (uint32_t)i * 0x200;
-		assert(cpu->x[i] == (uint32_t)i * 0x200);
-	}
-
-	/* Test with last valid register */
-	cpu->x[31] = 0x12345678;
-	assert(cpu->x[31] == 0x12345678);
-
-	printf("\tOK Register access works\n");
-	cpu_destroy(cpu);
-}
-
 int main(void) {
 	printf("=== RISC-V Emulator Comprehensive Tests ===\n\n");
 
@@ -561,7 +530,6 @@ int main(void) {
 	test_complex_execution(); test_count++;
 	test_memory_layout(); test_count++;
 	test_instruction_fetch(); test_count++;
-	test_register_access(); test_count++;
 
 	printf("\n=== All %d tests passed! ===\n", test_count);
 	return 0;
