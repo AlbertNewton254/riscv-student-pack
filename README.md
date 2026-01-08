@@ -1,226 +1,248 @@
 # RISC-V Student Pack
 
-Educational toolkit for RISC-V Assembly: assembler and emulator in C (RV32I base, with pseudoinstructions and full test suite).
+Educational toolkit for learning RISC-V: assembler and emulator in C.
 
 ## Overview
 
+Two complementary tools for RISC-V assembly programming:
 
-RISC-V Student Pack provides students and educators with a simple, extensible RISC-V environment:
+**Assembler**: Two-pass assembler translating RV32I assembly to binaries.
+First pass resolves labels, second pass encodes instructions.
 
-- **Assembler**: Two-pass assembler for RV32I Assembly files, supporting all base instructions and common pseudoinstructions.
-- **Emulator**: RV32I emulator supporting all base instructions and a set of Linux ABI syscalls.
+**Emulator**: Instruction simulator executing RV32I binaries.
+Implements base integer instructions with Linux ABI syscalls.
 
-Both tools are written in C and designed for easy compilation and use on Linux systems.
-
-**Note:** The emulator and assembler currently implement the RV32I base instruction set and common pseudoinstructions. Support for the M extension (multiplication/division) and additional syscalls is planned for future releases.
+Both written in portable C for clarity and extensibility.
 
 ---
 
-## Table of Contents
-1. [Features](#features)
-2. [Directory Structure](#directory-structure)
-3. [Prerequisites](#prerequisites)
-4. [Building](#building)
-5. [Usage](#usage)
-6. [License](#license)
-7. [Contributing](#contributing)
+## Design Choices
+
+### Assembler
+
+Two-pass architecture for simple label resolution:
+- Pass 1: Build symbol table, calculate addresses
+- Pass 2: Encode instructions with resolved symbols
+
+**Binary Output**: Flat binaries (not ELF) for simplicity.
+What you see is what executes.
+
+**Pseudoinstructions**: `li`, `la`, `mv`, `nop` expand to RV32I.
+Idiomatic assembly, pure execution.
+
+**Sections**: `.text` and `.data` with automatic address calculation.
+
+### Emulator
+
+Fetch-decode-execute cycle with 16 MiB RAM.
+
+**Memory**: Stack at 0x80000000, conventional RISC-V layout.
+
+**Syscalls**: Minimal Linux ABI set for basic I/O.
+
+**Debugging**: Register dumps on errors.
+
+### RV32I Focus
+
+Both tools implement the complete RV32I base (32 instructions).
 
 ---
 
 ## Features
 
-
 ### Assembler
-- Two-pass assembler: first pass resolves labels and calculates addresses, second pass encodes instructions and outputs binary.
-- Supports **all RV32I base instructions** (see below).
-- Implements common pseudoinstructions: `li`, `la`, `mv`, `nop`.
-- Handles `.text` and `.data` sections, with label relocation for data.
-- Supports assembler directives:
-    - `.text`, `.data` (section switching)
-    - `.ascii`, `.asciiz` (inline ASCII string data, with/without null terminator)
-    - `.byte`, `.half`, `.word`, `.space` (data allocation)
-- Input: `.s`/`.asm` files (plain text assembly)
-- Output: flat binary file (not ELF)
 
-
-#### Supported Assembly Instructions
-
-- All RV32I base instructions (R, I, S, B, U, J types)
+- All RV32I instructions (R, I, S, B, U, J formats)
 - Pseudoinstructions: `li`, `la`, `mv`, `nop`
-
-> **Note:** The assembler will report an error for instructions outside the RV32I base set or unsupported pseudoinstructions.
-
-
-#### Supported Assembler Directives
-
-- `.text` — Switch to code section
-- `.data` — Switch to data section
-- `.ascii "string"` — Store ASCII string in data section
-- `.asciiz "string"` — Store null-terminated ASCII string
-- `.byte N,...` — Store single byte(s) in data section
-- `.half N,...` — Store 2-byte halfword(s) in data section
-- `.word N,...` — Store 4-byte word(s) in data section
-- `.space N` — Reserve N bytes in data section
-
+- `.text` and `.data` sections
+- Data directives: `.ascii`, `.asciiz`, `.byte`, `.half`, `.word`, `.space`
+- Forward/backward label references
+- Accepts `.s` and `.asm` files
 
 ### Emulator
-- Supports all RV32I instruction formats (R, I, S, B, U, J) for decoding and execution.
-- Implements instruction types: arithmetic, logic, comparisons, branches, loads/stores, jumps, system calls.
-- Emulates a set of Linux ABI syscalls (see below).
-- Memory-mapped, byte-addressable RAM (16 MiB by default).
-- Stack pointer initialized to 0x80000000.
-- Prints register dump on error or exit.
 
+- Full RV32I execution
+- Linux ABI syscalls: exit, read, write, openat, close, fstat, brk
+- 16 MiB RAM, configurable load address
+- Register dumps on errors
+- Standard file I/O
 
-#### Supported Syscalls (RV32 Linux ABI)
+---
 
-| Syscall Name | Number | Description |
-|-------------|--------|-------------|
-| exit        | 93     | Exit program |
-| read        | 63     | Read from file descriptor |
-| write       | 64     | Write to file descriptor |
-| openat      | 56     | Open file |
-| close       | 57     | Close file descriptor |
-| brk         | 214    | Set program break (stub, returns -ENOMEM) |
-| fstat       | 80     | Get file status |
+## Quick Reference
 
+### Supported Instructions (RV32I)
 
-Other syscalls will return -ENOSYS (not implemented).
+| Type | Instructions |
+|------|-------------|
+| **Arithmetic** | `add`, `sub`, `addi` |
+| **Logical** | `and`, `or`, `xor`, `andi`, `ori`, `xori` |
+| **Shifts** | `sll`, `srl`, `sra`, `slli`, `srli`, `srai` |
+| **Comparison** | `slt`, `sltu`, `slti`, `sltiu` |
+| **Branches** | `beq`, `bne`, `blt`, `bge`, `bltu`, `bgeu` |
+| **Jumps** | `jal`, `jalr` |
+| **Loads** | `lb`, `lh`, `lw`, `lbu`, `lhu` |
+| **Stores** | `sb`, `sh`, `sw` |
+| **Upper Immediate** | `lui`, `auipc` |
+| **System** | `ecall` |
+| **Pseudo** | `li`, `la`, `mv`, `nop` |
 
+### System Calls
 
-#### Supported Instruction Formats (Emulator)
+| Syscall | Number | Usage |
+|---------|--------|-------|
+| `exit` | 93 | Terminate program with status code |
+| `read` | 63 | Read from file descriptor |
+| `write` | 64 | Write to file descriptor |
+| `openat` | 56 | Open file (relative to directory fd) |
+| `close` | 57 | Close file descriptor |
+| `fstat` | 80 | Query file status |
+| `brk` | 214 | Adjust program break (returns -ENOMEM) |
 
-- R-type: arithmetic/logical (e.g., add, sub, and, or, xor, slt, sll, sra, srl)
-- I-type: immediate arithmetic/logical, loads, jalr, ecall
-- S-type: stores
-- B-type: branches (beq, bne, blt, bge, bltu, bgeu)
-- U-type: lui, auipc
-- J-type: jal
+Unimplemented syscalls return -ENOSYS.
 
-> **Note:** The assembler emits all RV32I instructions and supported pseudoinstructions; the emulator can execute all RV32I instructions present in the binary.
+### Assembler Directives
+
+| Directive | Description | Example |
+|-----------|-------------|---------|
+| `.text` | Switch to code section | `.text` |
+| `.data` | Switch to data section | `.data` |
+| `.ascii` | Store ASCII string | `.ascii "hello"` |
+| `.asciiz` | Store null-terminated string | `.asciiz "world"` |
+| `.byte` | Store 8-bit value(s) | `.byte 42, 0x2A` |
+| `.half` | Store 16-bit value(s) | `.half 1000` |
+| `.word` | Store 32-bit value(s) | `.word 0x12345678` |
+| `.space` | Reserve N bytes | `.space 100` |
 
 ---
 
 
-## Directory Structure
+## Getting Started
 
-```
-riscv-student-pack/
-├── README.md
-├── LICENSE
-├── Makefile
-├── unit_tests.sh
-├── assembler/
-│   ├── Makefile
-│   ├── include/
-│   │   └── assembler.h
-│   ├── src/
-│   │   ├── adjust_labels.c
-│   │   ├── encode.c
-│   │   ├── expand_pseudoinstruction.c
-│   │   ├── first_pass.c
-│   │   ├── main.c
-│   │   ├── second_pass.c
-│   │   └── utils.c
-│   └── tests/
-│       └── test_assembler.c
-├── emulator/
-│   ├── Makefile
-│   ├── include/
-│   │   ├── cpu.h
-│   │   ├── instructions.h
-│   │   └── memory.h
-│   ├── src/
-│   │   ├── cpu.c
-│   │   ├── instructions.c
-│   │   ├── main.c
-│   │   └── memory.c
-│   └── tests/
-│       └── test_emulator.c
-```
+### Prerequisites
 
----
+- GCC or compatible C compiler
+- GNU Make
+- Linux (for syscalls)
 
-
-## Prerequisites
-
-- GCC (or compatible C compiler)
-- Linux (for handling syscalls, since they rely on unistd.h header)
-
----
-
-
-## Building
-
-### Assembler
+### Build
 
 ```bash
-cd assembler
 make
 ```
 
-### Emulator
+### Usage
 
+Assemble:
 ```bash
-cd emulator
-make
+./assembler/riscv_assembler program.s program.bin
 ```
 
----
-
-
-## Usage
-
-### Assembler
-
+Run:
 ```bash
-./riscv_assembler <input.s> <output.bin>
+./emulator/riscv_emulator program.bin [load_address]
 ```
-Output: `<output.bin>`
 
-### Emulator
-
-```bash
-./riscv_emulator <program.bin> [load_address]
-```
-Output: Runs the binary and prints exit status or error information.
-
----
-
-
-## License
-
-This project is released under the [MIT License](./LICENSE). For educational use only.
-
----
-
-
-## Roadmap
-
-### Emulator
-- [ ] Add support for RV32IM (M extension: multiplication/division)
-- [ ] Expand the set of supported Linux syscalls
-- [ ] Improve error reporting and debugging features
-
-### Assembler
-- [x] Add support to pseudoinstructions
-- [ ] Add support to RV32IM (M extension: multiplication/division)
-- [ ] Generate ELF (Executable and Linkable File) for full UNIX/Linux compatibility
-- [ ] Allow more than one source file for assembling
-
----
-
-
-## Testing
-
-The project includes unit and integration tests for both assembler and emulator. Run all tests with:
-
+Test:
 ```bash
 ./unit_tests.sh
 ```
 
-This script builds both tools, runs unit tests, and performs integration tests (including pseudoinstructions and memory operations).
+---
 
-## Contributing & Contact
+## Project Structure
 
-Contributions, suggestions, and bug reports are welcome! Please open an issue or pull request.
+## Project Structure
+
+```
+riscv-student-pack/
+├── assembler/              # Two-pass assembler implementation
+│   ├── include/
+│   │   └── assembler.h    # Public API and data structures
+│   ├── src/
+│   │   ├── main.c         # Entry point and CLI
+│   │   ├── first_pass.c   # Symbol table construction
+│   │   ├── second_pass.c  # Instruction encoding
+│   │   ├── encode.c       # Instruction format encoding
+│   │   ├── expand_pseudoinstruction.c
+│   │   ├── adjust_labels.c
+│   │   └── utils.c        # Parsing utilities
+│   └── tests/
+│       └── test_assembler.c
+│
+├── emulator/              # RV32I instruction simulator
+│   ├── include/
+│   │   ├── cpu.h          # CPU state and control
+│   │   ├── memory.h       # Memory subsystem
+│   │   └── instructions.h # Instruction decoder
+│   ├── src/
+│   │   ├── main.c         # Entry point and CLI
+│   │   ├── cpu.c          # Fetch-decode-execute loop
+│   │   ├── instructions.c # Instruction implementations
+│   │   └── memory.c       # Memory operations
+│   └── tests/
+│       └── test_emulator.c
+│
+├── Makefile               # Root build configuration
+├── unit_tests.sh          # Test runner
+└── README.md
+```
+
+---
+
+## Future Work
+
+### Near-Term
+
+**RV32M Extension**: Multiplication and division instructions.
+Completes the baseline embedded profile.
+
+**More Syscalls**: Add `lseek`, directory ops, `mmap`.
+Enables more realistic programs.
+
+**Better Errors**: Line numbers in assembler.
+Instruction tracing in emulator.
+
+### Medium-Term
+
+**ELF Format**: Generate standard object files.
+Interop with GNU toolchain and GDB.
+
+**Multi-File Assembly**: Separate compilation and linking.
+Mirrors real development workflows.
+
+**Disassembler**: Binary to assembly converter.
+Aids debugging, demonstrates reversibility.
+
+### Long-Term
+
+**Extensions**: Floating-point (F, D), atomics (A), compressed (C).
+
+**Performance Tools**: Cycle counting, cache simulation.
+Microarchitecture teaching.
+
+**Cross-Platform**: Abstract syscalls for Windows/macOS.
+
+These are natural evolution paths, not requirements.
+Suitable as student projects or incremental improvements.
+
+---
+
+## Contributing
+
+Contributions welcome! Especially:
+
+- Test cases and example programs
+- Documentation and tutorials
+- Bug reports with reproducible cases
+- Performance improvements that maintain clarity
+
+Open an issue before major changes.
+
+---
+
+## License
+
+MIT License. See [LICENSE](./LICENSE).
+
+Free to use, modify, and extend for any purpose.
