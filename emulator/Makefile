@@ -9,16 +9,13 @@ INCLUDES = -I./include
 SRC_DIR = src
 SRC_CPP = $(SRC_DIR)/cpu.cpp $(SRC_DIR)/instructions.cpp $(SRC_DIR)/memory.cpp
 SRC_MAIN = $(SRC_DIR)/main.cpp
-SRC_TEST = tests/test_emulator.cpp
 
 # Object files
 OBJ = $(SRC_CPP:.cpp=.o)
 OBJ_MAIN = $(SRC_MAIN:.cpp=.o)
-OBJ_TEST = $(SRC_TEST:.cpp=.o)
 
 # Executable names
 EXEC = riscv_emulator
-TEST_EXEC = test_emulator
 
 # Default target
 all: $(EXEC)
@@ -27,16 +24,8 @@ all: $(EXEC)
 $(EXEC): $(OBJ) $(OBJ_MAIN)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $^
 
-# Test executable
-$(TEST_EXEC): $(OBJ) $(OBJ_TEST)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $^
-
 # Pattern rule for compiling .cpp files
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
-
-# Pattern rule for compiling .c files (for tests)
-%.o: %.c
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 # Specific dependencies with correct paths
@@ -52,13 +41,6 @@ $(SRC_DIR)/memory.o: $(SRC_DIR)/memory.cpp include/memory.hpp
 $(SRC_DIR)/main.o: $(SRC_DIR)/main.cpp include/cpu.hpp include/memory.hpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
-tests/test_emulator.o: tests/test_emulator.cpp include/cpu.hpp include/memory.hpp include/instructions.hpp
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
-
-# Run tests
-test: $(TEST_EXEC)
-	./$(TEST_EXEC)
-
 # Run emulator with sample program
 run: $(EXEC)
 	@if [ -z "$(PROGRAM)" ]; then \
@@ -70,11 +52,11 @@ run: $(EXEC)
 
 # Clean everything (including executables)
 clean:
-	rm -f $(EXEC) $(TEST_EXEC) *.o $(SRC_DIR)/*.o tests/*.o
+	rm -f $(EXEC) *.o $(SRC_DIR)/*.o
 
 # Clean object files only (keep executables for fast rebuilds)
 clean-soft:
-	rm -f *.o $(SRC_DIR)/*.o tests/*.o
+	rm -f *.o $(SRC_DIR)/*.o
 
 # Format code (optional - requires clang-format)
 format:
@@ -96,7 +78,6 @@ release: clean $(EXEC)
 help:
 	@echo "Available targets:"
 	@echo "  all       - Build the emulator (default)"
-	@echo "  test      - Build and run unit tests"
 	@echo "  run       - Run the emulator with PROGRAM variable"
 	@echo "  clean     - Remove everything (including executables)"
 	@echo "  clean-soft - Remove object files only (keep executables for fast rebuilds)"
@@ -108,8 +89,10 @@ help:
 	@echo ""
 	@echo "Usage examples:"
 	@echo "  make                         # Build emulator"
-	@echo "  make test                    # Build and run tests"
 	@echo "  PROGRAM=program.bin make run # Run with specific binary"
 	@echo "  make clean                   # Clean build files"
+	@echo ""
+	@echo "Tests moved to: ../tests/"
+	@echo "Run: cd ../tests && make test_emulator"
 
-.PHONY: all test run clean clean-soft format analyze debug release help
+.PHONY: all run clean clean-soft format analyze debug release help
