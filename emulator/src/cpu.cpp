@@ -327,7 +327,7 @@ uint32_t CPU::execute_alu(uint32_t rs1_val, uint32_t rs2_val_or_imm, uint8_t fun
 			return rs1_val ^ rs2_val_or_imm;
 
 		case 0x5:
-			if (!is_imm && (funct7 & 0x20)) {
+			if (funct7 & 0x20) {
 				return (int32_t)rs1_val >> (rs2_val_or_imm & 0x1F);
 			}
 			return rs1_val >> (rs2_val_or_imm & 0x1F);
@@ -421,7 +421,13 @@ cpu_status_t CPU::execute(Memory *mem, Instruction *instr) {
 				}
 
 				case 0x13: {
-					uint32_t result = execute_alu(rs1_val, instr->get_imm(), instr->get_funct3(), 0, true);
+					uint8_t funct3 = instr->get_funct3();
+					uint8_t funct7 = 0;
+					/* For shift instructions, extract funct7 from immediate */
+					if (funct3 == 0x1 || funct3 == 0x5) {
+						funct7 = (instr->get_imm() >> 5) & 0x7F;
+					}
+					uint32_t result = execute_alu(rs1_val, instr->get_imm(), funct3, funct7, true);
 					reg_write(instr->get_rd(), result);
 					break;
 				}
