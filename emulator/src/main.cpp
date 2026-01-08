@@ -56,14 +56,24 @@ static void dump_registers(CPU *cpu) {
 }
 
 int main(int argc, char *argv[]) {
-	if (argc < 2) {
-		std::fprintf(stderr, "Usage: %s <program.bin> [load_address]\n", argv[0]);
-		return 1;
+	bool debug_mode = false;
+	const char *program_file = nullptr;
+	uint32_t load_address = 0x00000000;
+
+	/* Parse command line arguments */
+	for (int i = 1; i < argc; i++) {
+		if (std::strcmp(argv[i], "--debug") == 0) {
+			debug_mode = true;
+		} else if (!program_file) {
+			program_file = argv[i];
+		} else {
+			load_address = std::strtoul(argv[i], nullptr, 0);
+		}
 	}
 
-	uint32_t load_address = 0x00000000;
-	if (argc > 2) {
-		load_address = std::strtoul(argv[2], nullptr, 0);
+	if (!program_file) {
+		std::fprintf(stderr, "Usage: %s [--debug] <program.bin> [load_address]\n", argv[0]);
+		return 1;
 	}
 
 	std::printf("Initializing RISC-V interpreter...\n");
@@ -82,11 +92,12 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	if (load_program(mem.get(), argv[1], load_address) != 0) {
+	if (load_program(mem.get(), program_file, load_address) != 0) {
 		return 1;
 	}
 
 	cpu->set_pc(load_address);
+	cpu->set_debug_mode(debug_mode);
 
 	std::printf("\nStarting execution...\n");
 	std::printf("Initial SP: 0x%08x\n", cpu->get_register(2));

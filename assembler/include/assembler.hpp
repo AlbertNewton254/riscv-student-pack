@@ -174,6 +174,7 @@ private:
 	uint32_t pc_data;  /* Kept for backwards compatibility */
 	uint32_t text_size;
 	uint32_t data_size;
+	bool debug_mode;
 
 	/* Utility functions (private instance methods) */
 	uint32_t find_label(const char *name) const;
@@ -267,6 +268,11 @@ public:
 	 * Get number of labels
 	 */
 	size_t get_label_count() const { return labels.size(); }
+
+	/**
+	 * Set debug mode (enables verbose output)
+	 */
+	void set_debug_mode(bool enable) { debug_mode = enable; }
 };
 
 #endif

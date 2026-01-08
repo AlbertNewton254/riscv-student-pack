@@ -7,6 +7,7 @@ Assembler::Assembler() {
 	text_size = 0;
 	data_size = 0;
 	current_section_name = ".text";
+	debug_mode = false;
 
 	/* Initialize standard sections */
 	sections[".text"] = SectionInfo(".text", SEC_TEXT);

@@ -61,6 +61,7 @@ private:
 	std::array<uint32_t, 32> x;
 	uint32_t pc;
 	bool running;
+	bool debug_mode;
 
 	/**
 	 * Read register value (x0 always returns 0)
@@ -213,6 +214,13 @@ public:
 	 * Output: Step execution status
 	 */
 	cpu_status_t step(Memory *mem);
+
+	/**
+	 * Set debug mode (enables verbose execution trace)
+	 *
+	 * enable: true to enable debug output, false to disable
+	 */
+	void set_debug_mode(bool enable);
 };
 
 #endif

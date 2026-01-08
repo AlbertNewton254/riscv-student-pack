@@ -17,12 +17,84 @@ CPU::CPU() {
 	}
 	pc = 0;
 	running = true;
+	debug_mode = false;
 
 	x[2] = STACK_TOP;
 }
 
 bool CPU::is_running() const {
 	return running;
+}
+
+void CPU::set_debug_mode(bool enable) {
+	debug_mode = enable;
+}
+
+/* Helper function to get instruction name */
+static const char* get_instruction_name(uint8_t opcode, uint8_t funct3, uint8_t funct7) {
+	switch (opcode) {
+		case 0x33: /* R-type ALU */
+			if (funct7 == 0x00) {
+				switch (funct3) {
+					case 0x0: return "add";
+					case 0x4: return "xor";
+					case 0x6: return "or";
+					case 0x7: return "and";
+					case 0x1: return "sll";
+					case 0x5: return "srl";
+					case 0x2: return "slt";
+					case 0x3: return "sltu";
+				}
+			} else if (funct7 == 0x20) {
+				if (funct3 == 0x0) return "sub";
+				if (funct3 == 0x5) return "sra";
+			}
+			return "alu-r";
+		case 0x13: /* I-type ALU */
+			switch (funct3) {
+				case 0x0: return "addi";
+				case 0x4: return "xori";
+				case 0x6: return "ori";
+				case 0x7: return "andi";
+				case 0x1: return "slli";
+				case 0x5: return (funct7 == 0x00) ? "srli" : "srai";
+				case 0x2: return "slti";
+				case 0x3: return "sltiu";
+			}
+			return "alu-i";
+		case 0x03: /* Load */
+			switch (funct3) {
+				case 0x0: return "lb";
+				case 0x1: return "lh";
+				case 0x2: return "lw";
+				case 0x4: return "lbu";
+				case 0x5: return "lhu";
+			}
+			return "load";
+		case 0x23: /* Store */
+			switch (funct3) {
+				case 0x0: return "sb";
+				case 0x1: return "sh";
+				case 0x2: return "sw";
+			}
+			return "store";
+		case 0x63: /* Branch */
+			switch (funct3) {
+				case 0x0: return "beq";
+				case 0x1: return "bne";
+				case 0x4: return "blt";
+				case 0x5: return "bge";
+				case 0x6: return "bltu";
+				case 0x7: return "bgeu";
+			}
+			return "branch";
+		case 0x6f: return "jal";
+		case 0x67: return "jalr";
+		case 0x37: return "lui";
+		case 0x17: return "auipc";
+		case 0x73: return (funct3 == 0x0) ? "ecall" : "system";
+		default: return "unknown";
+	}
 }
 
 uint32_t CPU::get_pc() const {
@@ -412,14 +484,80 @@ cpu_status_t CPU::step(Memory *mem) {
 	uint32_t raw_instr;
 	Instruction decoded;
 
+	/* FETCH */
+	if (debug_mode) {
+		std::printf("[FETCH] PC=0x%08x\n", pc);
+	}
+
 	cpu_status_t status = fetch(mem, &raw_instr);
 	if (status != CPU_OK) {
+		if (debug_mode) {
+			std::printf("  FETCH ERROR: status=%d\n", status);
+		}
 		return status;
 	}
 
+	if (debug_mode) {
+		std::printf("  Instruction: 0x%08x\n", raw_instr);
+	}
+
+	/* DECODE */
 	if (!decoded.decode(raw_instr)) {
+		if (debug_mode) {
+			std::printf("  DECODE ERROR\n");
+		}
 		return CPU_DECODE_ERROR;
 	}
 
-	return execute(mem, &decoded);
+	if (debug_mode) {
+		const char* instr_name = get_instruction_name(decoded.get_opcode(),
+			decoded.get_funct3(), decoded.get_funct7());
+		std::printf("[DECODE] %s (opcode=0x%02x", instr_name, decoded.get_opcode());
+
+		switch (decoded.get_format()) {
+			case INSTR_R_TYPE:
+				std::printf(", rd=x%d, rs1=x%d, rs2=x%d, funct3=0x%x, funct7=0x%x)\n",
+					decoded.get_rd(), decoded.get_rs1(), decoded.get_rs2(),
+					decoded.get_funct3(), decoded.get_funct7());
+				break;
+			case INSTR_I_TYPE:
+				std::printf(", rd=x%d, rs1=x%d, imm=%d)\n",
+					decoded.get_rd(), decoded.get_rs1(), decoded.get_imm());
+				break;
+			case INSTR_S_TYPE:
+				std::printf(", rs1=x%d, rs2=x%d, imm=%d)\n",
+					decoded.get_rs1(), decoded.get_rs2(), decoded.get_imm());
+				break;
+			case INSTR_B_TYPE:
+				std::printf(", rs1=x%d, rs2=x%d, imm=%d, target=0x%08x)\n",
+					decoded.get_rs1(), decoded.get_rs2(), decoded.get_imm(),
+					pc + decoded.get_imm());
+				break;
+			case INSTR_U_TYPE:
+				std::printf(", rd=x%d, imm=0x%x)\n",
+					decoded.get_rd(), decoded.get_imm());
+				break;
+			case INSTR_J_TYPE:
+				std::printf(", rd=x%d, imm=%d, target=0x%08x)\n",
+					decoded.get_rd(), decoded.get_imm(), pc + decoded.get_imm());
+				break;
+		}
+	}
+
+	/* EXECUTE */
+	if (debug_mode) {
+		std::printf("[EXECUTE] ");
+	}
+
+	status = execute(mem, &decoded);
+
+	if (debug_mode) {
+		if (status == CPU_OK) {
+			std::printf("OK, next_pc=0x%08x\n\n", pc);
+		} else {
+			std::printf("ERROR: status=%d\n\n", status);
+		}
+	}
+
+	return status;
 }

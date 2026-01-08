@@ -235,7 +235,8 @@ static int is_pseudoinstruction(const char *op) {
 		   !strcmp(op, "mv") || !strcmp(op, "nop");
 }
 
-static void debug_parsing(const char *original_line, const char *op, const char *a1, const char *a2, const char *a3) {
+static void debug_parsing(bool debug_mode, const char *original_line, const char *op, const char *a1, const char *a2, const char *a3) {
+	if (!debug_mode) return;
 	fprintf(stderr, "DEBUG PARSING:\n");
 	fprintf(stderr, "\tOriginal line: '%s'\n", original_line);
 	fprintf(stderr, "\tParsed:\n");
@@ -296,7 +297,9 @@ void Assembler::process_instruction_second_pass(FILE *out, uint32_t *pc, const c
 
 	char op[16] = "", a1[32] = "", a2[32] = "", a3[32] = "";
 
-	fprintf(stderr, "\tProcessed line: '%s'\n", processed_line);
+	if (debug_mode) {
+		fprintf(stderr, "\tProcessed line: '%s'\n", processed_line);
+	}
 
 	parse_instruction_args(processed_line, op, a1, a2, a3);
 
@@ -313,15 +316,17 @@ void Assembler::process_instruction_second_pass(FILE *out, uint32_t *pc, const c
 		trim(a2);
 	}
 
-	debug_parsing(original_line, op, a1, a2, a3);
+	debug_parsing(debug_mode, original_line, op, a1, a2, a3);
 
 	if (is_pseudoinstruction(op)) {
 		char expanded[2][MAX_LINE];
 		int count = expand_pseudoinstruction(op, a1, a2, expanded, *pc);
 
-		fprintf(stderr, "\tPseudo-instruction expanded to %d instruction(s):\n", count);
-		for (int i = 0; i < count; i++) {
-			fprintf(stderr, "\t\t[%d] %s\n", i, expanded[i]);
+		if (debug_mode) {
+			fprintf(stderr, "\tPseudo-instruction expanded to %d instruction(s):\n", count);
+			for (int i = 0; i < count; i++) {
+				fprintf(stderr, "\t\t[%d] %s\n", i, expanded[i]);
+			}
 		}
 
 		for (int i = 0; i < count; i++) {
@@ -341,11 +346,13 @@ void Assembler::process_instruction_second_pass(FILE *out, uint32_t *pc, const c
 			trim(exp_a2);
 			trim(exp_a3);
 
-			fprintf(stderr, "\tParsing expanded instruction %d:\n", i);
-			fprintf(stderr, "\t\top:  '%s'\n", exp_op);
-			fprintf(stderr, "\t\ta1:  '%s'\n", exp_a1);
-			fprintf(stderr, "\t\ta2:  '%s'\n", exp_a2);
-			fprintf(stderr, "\t\ta3:  '%s'\n", exp_a3);
+			if (debug_mode) {
+				fprintf(stderr, "\tParsing expanded instruction %d:\n", i);
+				fprintf(stderr, "\t\top:  '%s'\n", exp_op);
+				fprintf(stderr, "\t\ta1:  '%s'\n", exp_a1);
+				fprintf(stderr, "\t\ta2:  '%s'\n", exp_a2);
+				fprintf(stderr, "\t\ta3:  '%s'\n", exp_a3);
+			}
 
 			uint32_t instr = encode_instruction(*pc, exp_op, exp_a1, exp_a2, exp_a3);
 			fwrite(&instr, 4, 1, out);

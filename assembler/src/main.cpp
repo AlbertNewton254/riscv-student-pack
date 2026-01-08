@@ -1,15 +1,35 @@
 /* main.cpp */
 #include "assembler.hpp"
 #include <cstdlib>
+#include <cstring>
 
 int main(int argc, char **argv) {
-	if (argc != 3) {
-		fprintf(stderr, "Usage: %s input.s output.bin\n", argv[0]);
+	bool debug_mode = false;
+	const char *input_file = nullptr;
+	const char *output_file = nullptr;
+
+	/* Parse command line arguments */
+	for (int i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "--debug") == 0) {
+			debug_mode = true;
+		} else if (!input_file) {
+			input_file = argv[i];
+		} else if (!output_file) {
+			output_file = argv[i];
+		} else {
+			fprintf(stderr, "Error: Too many arguments\n");
+			fprintf(stderr, "Usage: %s [--debug] input.s output.bin\n", argv[0]);
+			return 1;
+		}
+	}
+
+	if (!input_file || !output_file) {
+		fprintf(stderr, "Usage: %s [--debug] input.s output.bin\n", argv[0]);
 		return 1;
 	}
 
-	FilePtr in(fopen(argv[1], "r"));
-	FilePtr out(fopen(argv[2], "wb"));
+	FilePtr in(fopen(input_file, "r"));
+	FilePtr out(fopen(output_file, "wb"));
 
 	if (!in || !out) {
 		perror("file");
@@ -17,6 +37,7 @@ int main(int argc, char **argv) {
 	}
 
 	Assembler assembler;
+	assembler.set_debug_mode(debug_mode);
 
 	/* First pass: collect labels and calculate section sizes */
 	assembler.first_pass(in.get());
