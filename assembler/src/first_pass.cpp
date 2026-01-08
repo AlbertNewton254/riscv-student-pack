@@ -303,6 +303,13 @@ void Assembler::first_pass(FILE *f) {
 			continue;
 		}
 
+		/* Strip inline comments before looking for label colon */
+		char *comment = strchr(s, '#');
+		if (comment) {
+			*comment = '\0';
+			s = trim(s);
+		}
+
 		char *colon = strchr(s, ':');
 		if (colon) {
 			process_label(s);

@@ -443,6 +443,13 @@ void Assembler::second_pass(FILE *in, FILE *out) {
 			continue;
 		}
 
+		/* Strip inline comments before looking for label colon */
+		char *comment = strchr(s, '#');
+		if (comment) {
+			*comment = '\0';
+			s = trim(s);
+		}
+
 		char *colon = strchr(s, ':');
 		if (colon) {
 			char *after_colon = colon + 1;
