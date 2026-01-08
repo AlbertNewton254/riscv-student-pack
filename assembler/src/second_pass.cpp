@@ -99,9 +99,9 @@ uint32_t Assembler::encode_instruction(uint32_t current_pc, const char *op, cons
 	} else if (!strcmp(op, "jalr")) {
 		return Encoder::encode_i(parse_imm(a3), reg_num(a2), 0x0, reg_num(a1), 0x67);
 	} else if (!strcmp(op, "lui")) {
-		return Encoder::encode_u(parse_imm(a2), reg_num(a1), 0x37);
+		return Encoder::encode_u(parse_imm(a2) << 12, reg_num(a1), 0x37);
 	} else if (!strcmp(op, "auipc")) {
-		return Encoder::encode_u(parse_imm(a2), reg_num(a1), 0x17);
+		return Encoder::encode_u(parse_imm(a2) << 12, reg_num(a1), 0x17);
 	} else if (!strcmp(op, "ecall")) {
 		return Encoder::encode_i(0x000, 0x00, 0x0, 0x00, 0x73);
 	} else if (!strcmp(op, "ebreak")) {
