@@ -306,6 +306,30 @@ cpu_status_t CPU::execute_store(Memory *mem, Instruction *instr) {
 	return (status == MEM_OK) ? CPU_OK : CPU_EXECUTION_ERROR;
 }
 
+uint32_t CPU::execute_mul_div(uint32_t rs1_val, uint32_t rs2_val, uint8_t funct3) {
+	switch (funct3) {
+		case 0x0:
+			return rs1_val * rs2_val;
+
+		case 0x1:
+			return ((int64_t)(int32_t)rs1_val * (int64_t)(int32_t)rs2_val) >> 32;
+		case 0x2:
+			return ((int64_t)(int32_t)rs1_val * (uint64_t)rs2_val) >> 32;
+		case 0x3:
+			return ((uint64_t)rs1_val * (uint64_t)rs2_val) >> 32;
+		case 0x5:
+			return (rs2_val == 0) ? (uint32_t)-1 : (uint32_t)((int32_t)rs1_val / (int32_t)rs2_val);
+		case 0x6:
+			return (rs2_val == 0) ? (uint32_t)-1 : rs1_val / rs2_val;
+		case 0x7:
+			return (rs2_val == 0) ? rs1_val : (uint32_t)((int32_t)rs1_val % (int32_t)rs2_val);
+		case 0x8:
+			return (rs2_val == 0) ? rs1_val : rs1_val % rs2_val;
+		default:
+			return CPU_ILLEGAL_INSTRUCTION;
+	}
+}
+
 uint32_t CPU::execute_alu(uint32_t rs1_val, uint32_t rs2_val_or_imm, uint8_t funct3, uint8_t funct7, bool is_imm) {
 	switch (funct3) {
 		case 0x0:
@@ -339,7 +363,7 @@ uint32_t CPU::execute_alu(uint32_t rs1_val, uint32_t rs2_val_or_imm, uint8_t fun
 			return rs1_val & rs2_val_or_imm;
 
 		default:
-			return 0;
+			return CPU_ILLEGAL_INSTRUCTION;
 	}
 }
 
@@ -403,9 +427,14 @@ cpu_status_t CPU::execute(Memory *mem, Instruction *instr) {
 		case INSTR_R_TYPE: {
 			uint32_t rs1_val = reg_read(instr->get_rs1());
 			uint32_t rs2_val = reg_read(instr->get_rs2());
-			uint32_t result = execute_alu(rs1_val, rs2_val, instr->get_funct3(), instr->get_funct7(), false);
-			reg_write(instr->get_rd(), result);
-			break;
+			if (instr->get_funct7() == 0x01) { /* Add M extension */
+				uint32_t result = execute_mul_div(rs1_val, rs2_val, instr->get_funct3());
+				reg_write(instr->get_rd(), result);
+			} else {
+				uint32_t result = execute_alu(rs1_val, rs2_val, instr->get_funct3(), instr->get_funct7(), false);
+				reg_write(instr->get_rd(), result);
+				break;
+			}
 		}
 
 		case INSTR_I_TYPE: {

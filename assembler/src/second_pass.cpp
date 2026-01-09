@@ -34,6 +34,22 @@ uint32_t Assembler::encode_instruction(uint32_t current_pc, const char *op, cons
 		return Encoder::encode_r(0x00, reg_num(a3), reg_num(a2), 0x6, reg_num(a1), 0x33);
 	} else if (!strcmp(op, "and")) {
 		return Encoder::encode_r(0x00, reg_num(a3), reg_num(a2), 0x7, reg_num(a1), 0x33);
+	} else if (!strcmp(op, "mul")) {
+		return Encoder::encode_r(0x01, reg_num(a3), reg_num(a2), 0x0, reg_num(a1), 0x33);
+	} else if (!strcmp(op, "mulh")) {
+		return Encoder::encode_r(0x01, reg_num(a3), reg_num(a2), 0x1, reg_num(a1), 0x33);
+	} else if (!strcmp(op, "mulhsu")) {
+		return Encoder::encode_r(0x01, reg_num(a3), reg_num(a2), 0x2, reg_num(a1), 0x33);
+	} else if (!strcmp(op, "mulhu")) {
+		return Encoder::encode_r(0x01, reg_num(a3), reg_num(a2), 0x3, reg_num(a1), 0x33);
+	} else if (!strcmp(op, "div")) {
+		return Encoder::encode_r(0x01, reg_num(a3), reg_num(a2), 0x4, reg_num(a1), 0x33);
+	} else if (!strcmp(op, "divu")) {
+		return Encoder::encode_r(0x01, reg_num(a3), reg_num(a2), 0x5, reg_num(a1), 0x33);
+	} else if (!strcmp(op, "rem")) {
+		return Encoder::encode_r(0x01, reg_num(a3), reg_num(a2), 0x6, reg_num(a1), 0x33);
+	} else if (!strcmp(op, "remu")) {
+		return Encoder::encode_r(0x01, reg_num(a3), reg_num(a2), 0x7, reg_num(a1), 0x33);
 	} else if (!strcmp(op, "addi")) {
 		return Encoder::encode_i(parse_imm(a3), reg_num(a2), 0x0, reg_num(a1), 0x13);
 	} else if (!strcmp(op, "slti")) {

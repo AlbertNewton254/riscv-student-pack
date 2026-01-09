@@ -111,6 +111,17 @@ private:
 	cpu_status_t execute_store(Memory *mem, Instruction *instr);
 
 	/**
+	 * Execute M extension operation
+	 *
+	 * rs1_val: First operand value
+	 * rs2_val: Second operand value
+	 * funct3: 3-bit function code
+	 *
+	 * Output: M extension result
+	 */
+	uint32_t execute_mul_div(uint32_t rs1_val, uint32_t rs2_val, uint8_t funct3);
+
+	/**
 	 * Execute ALU operation
 	 *
 	 * rs1_val: First operand value
