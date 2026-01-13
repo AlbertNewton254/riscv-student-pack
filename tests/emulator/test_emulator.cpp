@@ -851,6 +851,417 @@ static void test_auipc_instruction() {
 	std::printf("\tOK AUIPC instruction works\n");
 }
 
+/* Test 21: M Extension - MUL instruction */
+static void test_m_extension_mul() {
+	std::printf("Test 21: M Extension - MUL instruction...\n");
+
+	CPU cpu;
+	Memory mem(8192);
+
+	/* Test basic multiplication: mul x1, x2, x3 */
+	/* Encoding: funct7=0x01, rs2, rs1, funct3=0x0, rd, opcode=0x33 */
+	uint32_t mul_instr = 0x023100B3;  /* mul x1, x2, x3 */
+	cpu.set_pc(0x1000);
+	cpu.set_register(2, 6);
+	cpu.set_register(3, 7);
+	mem.write32(0x1000, mul_instr);
+
+	cpu_status_t status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 42);  /* 6 * 7 = 42 */
+
+	/* Test multiplication with negative numbers */
+	cpu.set_pc(0x1004);
+	cpu.set_register(2, (uint32_t)-5);  /* -5 in 32-bit two's complement */
+	cpu.set_register(3, 10);
+	mem.write32(0x1004, mul_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == (uint32_t)-50);  /* -5 * 10 = -50 */
+
+	/* Test multiplication with large numbers */
+	cpu.set_pc(0x1008);
+	cpu.set_register(2, 0x12345678);
+	cpu.set_register(3, 2);
+	mem.write32(0x1008, mul_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 0x2468ACF0);  /* Lower 32 bits of product */
+
+	/* Test multiplication with zero */
+	cpu.set_pc(0x100C);
+	cpu.set_register(2, 12345);
+	cpu.set_register(3, 0);
+	mem.write32(0x100C, mul_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 0);  /* Any number * 0 = 0 */
+
+	std::printf("\tOK MUL instruction works\n");
+}
+
+/* Test 22: M Extension - MULH instruction */
+static void test_m_extension_mulh() {
+	std::printf("Test 22: M Extension - MULH instruction...\n");
+
+	CPU cpu;
+	Memory mem(8192);
+	cpu_status_t status;
+
+	/* Test MULH: mulh x1, x2, x3 */
+	/* Returns upper 32 bits of signed multiplication */
+	/* Encoding: funct7=0x01, rs2, rs1, funct3=0x1, rd, opcode=0x33 */
+	uint32_t mulh_instr = 0x023110B3;  /* mulh x1, x2, x3 */
+
+	/* Test with positive numbers that overflow 32 bits */
+	cpu.set_pc(0x1000);
+	cpu.set_register(2, 0x80000000);  /* 2^31 (large positive when unsigned) */
+	cpu.set_register(3, 2);
+	mem.write32(0x1000, mulh_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	/* -2147483648 * 2 = -4294967296, upper 32 bits = -1 (0xFFFFFFFF) */
+	assert(cpu.get_register(1) == 0xFFFFFFFF);
+
+	/* Test with positive numbers */
+	cpu.set_pc(0x1004);
+	cpu.set_register(2, 0x40000000);  /* 2^30 */
+	cpu.set_register(3, 4);
+	mem.write32(0x1004, mulh_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 1);  /* 2^30 * 4 = 2^32, upper 32 bits = 1 */
+
+	/* Test negative * negative */
+	cpu.set_pc(0x1008);
+	cpu.set_register(2, (uint32_t)-2);
+	cpu.set_register(3, (uint32_t)-3);
+	mem.write32(0x1008, mulh_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 0);  /* -2 * -3 = 6, upper 32 bits = 0 */
+
+	std::printf("\tOK MULH instruction works\n");
+}
+
+/* Test 23: M Extension - MULHSU instruction */
+static void test_m_extension_mulhsu() {
+	std::printf("Test 23: M Extension - MULHSU instruction...\n");
+
+	CPU cpu;
+	Memory mem(8192);
+	cpu_status_t status;
+
+	/* Test MULHSU: mulhsu x1, x2, x3 */
+	/* Returns upper 32 bits of signed rs1 * unsigned rs2 */
+	/* Encoding: funct7=0x01, rs2, rs1, funct3=0x2, rd, opcode=0x33 */
+	uint32_t mulhsu_instr = 0x023120B3;  /* mulhsu x1, x2, x3 */
+
+	/* Test signed * unsigned */
+	cpu.set_pc(0x1000);
+	cpu.set_register(2, (uint32_t)-2);  /* -2 signed */
+	cpu.set_register(3, 0x80000000);     /* Large unsigned */
+	mem.write32(0x1000, mulhsu_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 0xFFFFFFFF);  /* Negative result */
+
+	/* Test positive signed * unsigned */
+	cpu.set_pc(0x1004);
+	cpu.set_register(2, 2);
+	cpu.set_register(3, 0x80000000);
+	mem.write32(0x1004, mulhsu_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 1);  /* Upper 32 bits */
+
+	std::printf("\tOK MULHSU instruction works\n");
+}
+
+/* Test 24: M Extension - MULHU instruction */
+static void test_m_extension_mulhu() {
+	std::printf("Test 24: M Extension - MULHU instruction...\n");
+
+	CPU cpu;
+	Memory mem(8192);
+	cpu_status_t status;
+
+	/* Test MULHU: mulhu x1, x2, x3 */
+	/* Returns upper 32 bits of unsigned multiplication */
+	/* Encoding: funct7=0x01, rs2, rs1, funct3=0x3, rd, opcode=0x33 */
+	uint32_t mulhu_instr = 0x023130B3;  /* mulhu x1, x2, x3 */
+
+	/* Test large unsigned multiplication */
+	cpu.set_pc(0x1000);
+	cpu.set_register(2, 0xFFFFFFFF);  /* Max unsigned 32-bit */
+	cpu.set_register(3, 0xFFFFFFFF);  /* Max unsigned 32-bit */
+	mem.write32(0x1000, mulhu_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 0xFFFFFFFE);  /* Upper 32 bits */
+
+	/* Test with smaller numbers */
+	cpu.set_pc(0x1004);
+	cpu.set_register(2, 0x80000000);
+	cpu.set_register(3, 2);
+	mem.write32(0x1004, mulhu_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 1);  /* Upper 32 bits */
+
+	/* Test with zero */
+	cpu.set_pc(0x1008);
+	cpu.set_register(2, 0xFFFFFFFF);
+	cpu.set_register(3, 0);
+	mem.write32(0x1008, mulhu_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 0);  /* 0 * anything = 0 */
+
+	std::printf("\tOK MULHU instruction works\n");
+}
+
+/* Test 25: M Extension - DIV instruction */
+static void test_m_extension_div() {
+	std::printf("Test 25: M Extension - DIV instruction...\n");
+
+	CPU cpu;
+	Memory mem(8192);
+
+	/* Test DIV: div x1, x2, x3 */
+	/* Signed division */
+	/* Encoding: funct7=0x01, rs2, rs1, funct3=0x4, rd, opcode=0x33 */
+	uint32_t div_instr = 0x023140B3;  /* div x1, x2, x3 */
+
+	/* Test basic division */
+	cpu.set_pc(0x1000);
+	cpu.set_register(2, 42);
+	cpu.set_register(3, 7);
+	mem.write32(0x1000, div_instr);
+
+	cpu_status_t status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 6);  /* 42 / 7 = 6 */
+
+	/* Test division with negative dividend */
+	cpu.set_pc(0x1004);
+	cpu.set_register(2, (uint32_t)-20);
+	cpu.set_register(3, 4);
+	mem.write32(0x1004, div_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == (uint32_t)-5);  /* -20 / 4 = -5 */
+
+	/* Test division with negative divisor */
+	cpu.set_pc(0x1008);
+	cpu.set_register(2, 20);
+	cpu.set_register(3, (uint32_t)-4);
+	mem.write32(0x1008, div_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == (uint32_t)-5);  /* 20 / -4 = -5 */
+
+	/* Test division by zero (should return -1) */
+	cpu.set_pc(0x100C);
+	cpu.set_register(2, 100);
+	cpu.set_register(3, 0);
+	mem.write32(0x100C, div_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 0xFFFFFFFF);  /* Division by zero returns -1 */
+
+	/* Test rounding towards zero */
+	cpu.set_pc(0x1010);
+	cpu.set_register(2, 7);
+	cpu.set_register(3, 2);
+	mem.write32(0x1010, div_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 3);  /* 7 / 2 = 3 (rounds towards zero) */
+
+	std::printf("\tOK DIV instruction works\n");
+}
+
+/* Test 26: M Extension - DIVU instruction */
+static void test_m_extension_divu() {
+	std::printf("Test 26: M Extension - DIVU instruction...\n");
+
+	CPU cpu;
+	Memory mem(8192);
+
+	/* Test DIVU: divu x1, x2, x3 */
+	/* Unsigned division */
+	/* Encoding: funct7=0x01, rs2, rs1, funct3=0x5, rd, opcode=0x33 */
+	uint32_t divu_instr = 0x023150B3;  /* divu x1, x2, x3 */
+
+	/* Test basic unsigned division */
+	cpu.set_pc(0x1000);
+	cpu.set_register(2, 100);
+	cpu.set_register(3, 3);
+	mem.write32(0x1000, divu_instr);
+
+	cpu_status_t status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 33);  /* 100 / 3 = 33 */
+
+	/* Test with large unsigned numbers */
+	cpu.set_pc(0x1004);
+	cpu.set_register(2, 0xFFFFFFFF);  /* Max unsigned */
+	cpu.set_register(3, 2);
+	mem.write32(0x1004, divu_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 0x7FFFFFFF);  /* 4294967295 / 2 = 2147483647 */
+
+	/* Test division by zero (should return 2^32-1) */
+	cpu.set_pc(0x1008);
+	cpu.set_register(2, 100);
+	cpu.set_register(3, 0);
+	mem.write32(0x1008, divu_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 0xFFFFFFFF);  /* Division by zero returns max value */
+
+	std::printf("\tOK DIVU instruction works\n");
+}
+
+/* Test 27: M Extension - REM instruction */
+static void test_m_extension_rem() {
+	std::printf("Test 27: M Extension - REM instruction...\n");
+
+	CPU cpu;
+	Memory mem(8192);
+
+	/* Test REM: rem x1, x2, x3 */
+	/* Signed remainder */
+	/* Encoding: funct7=0x01, rs2, rs1, funct3=0x6, rd, opcode=0x33 */
+	uint32_t rem_instr = 0x023160B3;  /* rem x1, x2, x3 */
+
+	/* Test basic remainder */
+	cpu.set_pc(0x1000);
+	cpu.set_register(2, 42);
+	cpu.set_register(3, 7);
+	mem.write32(0x1000, rem_instr);
+
+	cpu_status_t status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 0);  /* 42 % 7 = 0 */
+
+	/* Test remainder with non-zero result */
+	cpu.set_pc(0x1004);
+	cpu.set_register(2, 43);
+	cpu.set_register(3, 7);
+	mem.write32(0x1004, rem_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 1);  /* 43 % 7 = 1 */
+
+	/* Test remainder with negative dividend */
+	cpu.set_pc(0x1008);
+	cpu.set_register(2, (uint32_t)-23);
+	cpu.set_register(3, 5);
+	mem.write32(0x1008, rem_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == (uint32_t)-3);  /* -23 % 5 = -3 */
+
+	/* Test remainder with negative divisor */
+	cpu.set_pc(0x100C);
+	cpu.set_register(2, 23);
+	cpu.set_register(3, (uint32_t)-5);
+	mem.write32(0x100C, rem_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 3);  /* 23 % -5 = 3 */
+
+	/* Test remainder by zero (should return dividend) */
+	cpu.set_pc(0x1010);
+	cpu.set_register(2, 100);
+	cpu.set_register(3, 0);
+	mem.write32(0x1010, rem_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 100);  /* Remainder by zero returns dividend */
+
+	std::printf("\tOK REM instruction works\n");
+}
+
+/* Test 28: M Extension - REMU instruction */
+static void test_m_extension_remu() {
+	std::printf("Test 28: M Extension - REMU instruction...\n");
+
+	CPU cpu;
+	Memory mem(8192);
+
+	/* Test REMU: remu x1, x2, x3 */
+	/* Unsigned remainder */
+	/* Encoding: funct7=0x01, rs2, rs1, funct3=0x7, rd, opcode=0x33 */
+	uint32_t remu_instr = 0x023170B3;  /* remu x1, x2, x3 */
+
+	/* Test basic unsigned remainder */
+	cpu.set_pc(0x1000);
+	cpu.set_register(2, 100);
+	cpu.set_register(3, 3);
+	mem.write32(0x1000, remu_instr);
+
+	cpu_status_t status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 1);  /* 100 % 3 = 1 */
+
+	/* Test with large unsigned numbers */
+	cpu.set_pc(0x1004);
+	cpu.set_register(2, 0xFFFFFFFF);
+	cpu.set_register(3, 10);
+	mem.write32(0x1004, remu_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 5);  /* 4294967295 % 10 = 5 */
+
+	/* Test remainder by zero (should return dividend) */
+	cpu.set_pc(0x1008);
+	cpu.set_register(2, 42);
+	cpu.set_register(3, 0);
+	mem.write32(0x1008, remu_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 42);  /* Remainder by zero returns dividend */
+
+	/* Test zero remainder */
+	cpu.set_pc(0x100C);
+	cpu.set_register(2, 50);
+	cpu.set_register(3, 5);
+	mem.write32(0x100C, remu_instr);
+
+	status = cpu.step(&mem);
+	assert(status == CPU_OK);
+	assert(cpu.get_register(1) == 0);  /* 50 % 5 = 0 */
+
+	std::printf("\tOK REMU instruction works\n");
+}
+
 int main() {
 	std::printf("=== RISC-V Emulator Comprehensive Tests ===\n\n");
 
@@ -877,6 +1288,16 @@ int main() {
 	test_all_branch_variants(); test_count++;
 	test_jalr_instruction(); test_count++;
 	test_auipc_instruction(); test_count++;
+
+	/* M Extension tests */
+	test_m_extension_mul(); test_count++;
+	test_m_extension_mulh(); test_count++;
+	test_m_extension_mulhsu(); test_count++;
+	test_m_extension_mulhu(); test_count++;
+	test_m_extension_div(); test_count++;
+	test_m_extension_divu(); test_count++;
+	test_m_extension_rem(); test_count++;
+	test_m_extension_remu(); test_count++;
 
 	std::printf("\n=== All %d tests passed! ===\n", test_count);
 	return 0;
