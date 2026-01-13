@@ -4,7 +4,7 @@ Two-pass assembler translating RISC-V assembly language (RV32I) to flat binary e
 
 ## Brief Description
 
-The assembler reads assembly source files and produces machine code binaries compatible with the RISC-V emulator. It implements a two-pass design: the first pass resolves all labels and symbols, and the second pass encodes instructions with final addresses. The assembler supports all 32 RV32I base instructions, 7 pseudoinstructions, and GNU-compatible section directives.
+The assembler reads assembly source files and produces machine code binaries compatible with the RISC-V emulator. It implements a two-pass design: the first pass resolves all labels and symbols, and the second pass encodes instructions with final addresses. The assembler supports all 32 RV32I base instructions, 8 M extension instructions (multiply/divide), 7 pseudoinstructions, and GNU-compatible section directives.
 
 ## Folder Structure
 
@@ -29,6 +29,7 @@ assembler/
 ## Features
 
 - All 32 RV32I base instructions
+- M extension: 8 multiply/divide instructions (mul, mulh, mulhsu, mulhu, div, divu, rem, remu)
 - 7 pseudoinstructions (li, la, mv, nop, call, ret, j)
 - GNU-compatible section directives (.text, .data, .rodata, .bss, .section)
 - Data directives (.ascii, .asciiz, .byte, .half, .word, .space)
@@ -76,7 +77,7 @@ The assembler uses a two-pass approach for accurate assembly:
 
 ### Instruction Set
 
-#### All 32 RV32I Base Instructions
+#### RV32I Base Instructions (32)
 
 | Type | Instructions |
 |------|-------------|
@@ -90,6 +91,13 @@ The assembler uses a two-pass approach for accurate assembly:
 | Stores | sb, sh, sw |
 | Upper Immediate | lui, auipc |
 | System | ecall, ebreak |
+
+#### M Extension Instructions (8)
+
+| Type | Instructions |
+|------|-------------|
+| Multiply | mul, mulh, mulhsu, mulhu |
+| Divide/Remainder | div, divu, rem, remu |
 
 #### Pseudoinstructions
 

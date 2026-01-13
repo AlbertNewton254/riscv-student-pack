@@ -6,8 +6,8 @@ Educational toolkit for learning RISC-V: assembler and emulator in modern C++17.
 
 The RISC-V Student Pack provides two complementary tools for learning assembly language programming:
 
-- **Assembler**: Two-pass assembler translating RV32I assembly to flat binary executables. Implements symbol resolution, instruction encoding, and pseudoinstruction expansion.
-- **Emulator**: Instruction simulator executing RV32I binaries with full base integer instruction set and Linux ABI syscalls.
+- **Assembler**: Two-pass assembler translating RV32I assembly to flat binary executables. Implements symbol resolution, instruction encoding, and pseudoinstruction expansion. Supports M extension for multiplication and division.
+- **Emulator**: Instruction simulator executing RV32I binaries with full base integer instruction set, M extension (multiply/divide), and Linux ABI syscalls.
 
 Both tools are written in modern C++17 with object-oriented design for clarity, safety, and extensibility.
 
@@ -113,6 +113,7 @@ See [tests/README.md](tests/README.md) for detailed documentation.
 
 The assembler supports all 32 RV32I base instructions:
 
+**RV32I Base (32):**
 - Arithmetic: add, sub, addi
 - Logical: and, or, xor, andi, ori, xori
 - Shifts: sll, srl, sra, slli, srli, srai
@@ -123,6 +124,10 @@ The assembler supports all 32 RV32I base instructions:
 - Stores: sb, sh, sw
 - Upper Immediate: lui, auipc
 - System: ecall, ebreak
+
+**M Extension (8):**
+- Multiply: mul, mulh, mulhsu, mulhu
+- Divide/Remainder: div, divu, rem, remu
 
 #### Pseudoinstructions
 

@@ -26,7 +26,7 @@ emulator/
 
 ## Features
 
-- Full RV32I fetch-decode-execute pipeline
+- Full RV32I fetch-decode-execute pipeline with M extension support
 - 32 registers with standard ABI names
 - Configurable memory (default 16 MiB) with bounds checking
 - Linux ABI syscalls: exit, read, write, openat, close, fstat, brk
@@ -88,7 +88,7 @@ The emulator implements a classic processor pipeline:
 
 ### Instruction Set
 
-#### All 32 RV32I Base Instructions
+#### RV32I Base Instructions (32)
 
 ##### Arithmetic (3)
 
@@ -157,6 +157,24 @@ The emulator implements a classic processor pipeline:
 ##### System (1)
 
 - ecall - System call (a7 = syscall number, a0-a2 = args)
+
+#### M Extension Instructions (8)
+
+##### Multiply (4)
+
+- mul rd, rs1, rs2 - rd = (rs1 * rs2)[31:0]
+- mulh rd, rs1, rs2 - rd = (rs1 * rs2)[63:32] (signed × signed)
+- mulhsu rd, rs1, rs2 - rd = (rs1 * rs2)[63:32] (signed × unsigned)
+- mulhu rd, rs1, rs2 - rd = (rs1 * rs2)[63:32] (unsigned × unsigned)
+
+##### Divide (4)
+
+- div rd, rs1, rs2 - rd = rs1 / rs2 (signed, rounds toward zero)
+- divu rd, rs1, rs2 - rd = rs1 / rs2 (unsigned)
+- rem rd, rs1, rs2 - rd = rs1 % rs2 (signed)
+- remu rd, rs1, rs2 - rd = rs1 % rs2 (unsigned)
+
+Division by zero: div/divu returns -1, rem/remu returns dividend.
 
 ### Registers
 

@@ -327,6 +327,7 @@ riscv-student-pack/
 ## What Works
 
 - All 32 RV32I base instructions
+- M extension: multiply/divide instructions (mul, mulh, mulhsu, mulhu, div, divu, rem, remu)
 - Pseudoinstructions (li, la, mv, call, ret, j, nop)
 - Forward and backward labels
 - Function calls with call/ret
