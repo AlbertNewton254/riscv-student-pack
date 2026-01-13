@@ -7,7 +7,7 @@ INCLUDES = -I./include
 
 # Source files (relative to src directory)
 SRC_DIR = src
-SRC_CPP = $(SRC_DIR)/cpu.cpp $(SRC_DIR)/instructions.cpp $(SRC_DIR)/memory.cpp
+SRC_CPP = $(SRC_DIR)/cpu.cpp $(SRC_DIR)/instructions.cpp $(SRC_DIR)/memory.cpp $(SRC_DIR)/emulator.cpp
 SRC_MAIN = $(SRC_DIR)/main.cpp
 
 # Object files
@@ -38,7 +38,10 @@ $(SRC_DIR)/instructions.o: $(SRC_DIR)/instructions.cpp include/instructions.hpp 
 $(SRC_DIR)/memory.o: $(SRC_DIR)/memory.cpp include/memory.hpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
-$(SRC_DIR)/main.o: $(SRC_DIR)/main.cpp include/cpu.hpp include/memory.hpp
+$(SRC_DIR)/emulator.o: $(SRC_DIR)/emulator.cpp include/emulator.hpp include/cpu.hpp include/memory.hpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(SRC_DIR)/main.o: $(SRC_DIR)/main.cpp include/emulator.hpp include/cpu.hpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 # Run emulator with sample program

@@ -61,7 +61,7 @@ public:
 	 *
 	 * Output: Read status
 	 */
-	memory_status_t read8(uint32_t addr, uint8_t *value);
+	memory_status_t read8(uint32_t addr, uint8_t *value) const;
 
 	/**
 	 * Write 8-bit value to memory
@@ -81,7 +81,7 @@ public:
 	 *
 	 * Output: Read status
 	 */
-	memory_status_t read16(uint32_t addr, uint16_t *value);
+	memory_status_t read16(uint32_t addr, uint16_t *value) const;
 
 	/**
 	 * Write 16-bit value to memory
@@ -101,7 +101,7 @@ public:
 	 *
 	 * Output: Read status
 	 */
-	memory_status_t read32(uint32_t addr, uint32_t *value);
+	memory_status_t read32(uint32_t addr, uint32_t *value) const;
 
 	/**
 	 * Write 32-bit value to memory

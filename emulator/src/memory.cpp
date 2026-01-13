@@ -2,15 +2,14 @@
 #include "memory.hpp"
 #include <cstdlib>
 #include <cstdint>
+#include <cstring>
 #include <memory>
 
 Memory::Memory(uint32_t size) : size(size) {
 	data = std::make_unique<uint8_t[]>(size);
 
 	/* Zero-initialize memory */
-	for (uint32_t i = 0; i < size; i++) {
-		data[i] = 0;
-	}
+	std::memset(data.get(), 0, size);
 }
 
 uint32_t Memory::get_size() const {
@@ -21,7 +20,7 @@ uint8_t* Memory::get_data() {
 	return data.get();
 }
 
-memory_status_t Memory::read8(uint32_t addr, uint8_t *value) {
+memory_status_t Memory::read8(uint32_t addr, uint8_t *value) const {
 	if (addr >= size) {
 		return MEM_READ_ERROR;
 	}
@@ -41,12 +40,13 @@ memory_status_t Memory::write8(uint32_t addr, uint8_t value) {
 	return MEM_OK;
 }
 
-memory_status_t Memory::read16(uint32_t addr, uint16_t *value) {
+memory_status_t Memory::read16(uint32_t addr, uint16_t *value) const {
 	if (addr % 2 != 0) {
 		return MEM_MISALIGNED_ERROR;
 	}
 
-	if (addr + 1 >= size) {
+	/* Check for overflow and bounds */
+	if (addr > size - 2) {
 		return MEM_READ_ERROR;
 	}
 
@@ -60,7 +60,8 @@ memory_status_t Memory::write16(uint32_t addr, uint16_t value) {
 		return MEM_MISALIGNED_ERROR;
 	}
 
-	if (addr + 1 >= size) {
+	/* Check for overflow and bounds */
+	if (addr > size - 2) {
 		return MEM_WRITE_ERROR;
 	}
 
@@ -70,12 +71,13 @@ memory_status_t Memory::write16(uint32_t addr, uint16_t value) {
 	return MEM_OK;
 }
 
-memory_status_t Memory::read32(uint32_t addr, uint32_t *value) {
+memory_status_t Memory::read32(uint32_t addr, uint32_t *value) const {
 	if (addr % 4 != 0) {
 		return MEM_MISALIGNED_ERROR;
 	}
 
-	if (addr + 3 >= size) {
+	/* Check for overflow and bounds */
+	if (addr > size - 4) {
 		return MEM_READ_ERROR;
 	}
 
@@ -92,7 +94,8 @@ memory_status_t Memory::write32(uint32_t addr, uint32_t value) {
 		return MEM_MISALIGNED_ERROR;
 	}
 
-	if (addr + 3 >= size) {
+	/* Check for overflow and bounds */
+	if (addr > size - 4) {
 		return MEM_WRITE_ERROR;
 	}
 
