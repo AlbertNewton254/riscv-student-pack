@@ -317,13 +317,13 @@ uint32_t CPU::execute_mul_div(uint32_t rs1_val, uint32_t rs2_val, uint8_t funct3
 			return ((int64_t)(int32_t)rs1_val * (uint64_t)rs2_val) >> 32;
 		case 0x3:
 			return ((uint64_t)rs1_val * (uint64_t)rs2_val) >> 32;
-		case 0x5:
+		case 0x4:
 			return (rs2_val == 0) ? (uint32_t)-1 : (uint32_t)((int32_t)rs1_val / (int32_t)rs2_val);
-		case 0x6:
+		case 0x5:
 			return (rs2_val == 0) ? (uint32_t)-1 : rs1_val / rs2_val;
-		case 0x7:
+		case 0x6:
 			return (rs2_val == 0) ? rs1_val : (uint32_t)((int32_t)rs1_val % (int32_t)rs2_val);
-		case 0x8:
+		case 0x7:
 			return (rs2_val == 0) ? rs1_val : rs1_val % rs2_val;
 		default:
 			return CPU_ILLEGAL_INSTRUCTION;
