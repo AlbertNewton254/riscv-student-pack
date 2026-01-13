@@ -224,20 +224,7 @@ cpu_status_t CPU::handle_syscall(Memory *mem) {
 		}
 
 		case SYS_brk: {
-			uint32_t new_break = arg1;
-
-			/* If arg is 0, return current break */
-			if (new_break == 0) {
-				x[10] = mem->get_heap_break();
-			} else {
-				/* Try to set new break */
-				memory_status_t status = mem->set_heap_break(new_break);
-				if (status == MEM_OK) {
-					x[10] = new_break;
-				} else {
-					x[10] = mem->get_heap_break();  /* Return old break on failure */
-				}
-			}
+			x[10] = -ENOMEM;
 			break;
 		}
 
