@@ -611,6 +611,196 @@ static void test_multiple_data_items(void) {
 	printf("\tOK multiple data items per directive work\n");
 }
 
+static void test_m_extension_mul() {
+	printf("Test 18: M Extension - MUL instructions...\n");
+
+	const char *assembly =
+		".text\n"
+		"	mul x1, x2, x3\n"
+		"	mulh x4, x5, x6\n"
+		"	mulhsu x7, x8, x9\n"
+		"	mulhu x10, x11, x12\n";
+
+	FILE *in = tmpfile();
+	FILE *out = tmpfile();
+	fputs(assembly, in);
+	rewind(in);
+
+	Assembler assembler;
+	assembler.first_pass(in);
+	assembler.second_pass(in, out);
+
+	/* Verify output size - 4 instructions = 16 bytes */
+	fseek(out, 0, SEEK_END);
+	long size = ftell(out);
+	assert(size == 16);
+
+	/* Verify instruction encodings */
+	rewind(out);
+	uint32_t instrs[4];
+	size_t count = fread(instrs, sizeof(uint32_t), 4, out);
+	assert(count == 4);
+
+	/* mul x1, x2, x3: funct7=0x01, rs2=x3, rs1=x2, funct3=0x0, rd=x1, opcode=0x33 */
+	assert(instrs[0] == 0x023100B3);
+
+	/* mulh x4, x5, x6: funct7=0x01, rs2=x6, rs1=x5, funct3=0x1, rd=x4, opcode=0x33 */
+	assert(instrs[1] == 0x02629233);
+
+	/* mulhsu x7, x8, x9: funct7=0x01, rs2=x9, rs1=x8, funct3=0x2, rd=x7, opcode=0x33 */
+	assert(instrs[2] == 0x029423B3);
+
+	/* mulhu x10, x11, x12: funct7=0x01, rs2=x12, rs1=x11, funct3=0x3, rd=x10, opcode=0x33 */
+	assert(instrs[3] == 0x02C5B533);
+
+	fclose(in);
+	fclose(out);
+	printf("\tOK M Extension MUL instructions work\n");
+}
+
+static void test_m_extension_div() {
+	printf("Test 19: M Extension - DIV instructions...\n");
+
+	const char *assembly =
+		".text\n"
+		"	div x1, x2, x3\n"
+		"	divu x4, x5, x6\n"
+		"	rem x7, x8, x9\n"
+		"	remu x10, x11, x12\n";
+
+	FILE *in = tmpfile();
+	FILE *out = tmpfile();
+	fputs(assembly, in);
+	rewind(in);
+
+	Assembler assembler;
+	assembler.first_pass(in);
+	assembler.second_pass(in, out);
+
+	/* Verify output size - 4 instructions = 16 bytes */
+	fseek(out, 0, SEEK_END);
+	long size = ftell(out);
+	assert(size == 16);
+
+	/* Verify instruction encodings */
+	rewind(out);
+	uint32_t instrs[4];
+	size_t count = fread(instrs, sizeof(uint32_t), 4, out);
+	assert(count == 4);
+
+	/* div x1, x2, x3: funct7=0x01, rs2=x3, rs1=x2, funct3=0x4, rd=x1, opcode=0x33 */
+	assert(instrs[0] == 0x023140B3);
+
+	/* divu x4, x5, x6: funct7=0x01, rs2=x6, rs1=x5, funct3=0x5, rd=x4, opcode=0x33 */
+	assert(instrs[1] == 0x0262D233);
+
+	/* rem x7, x8, x9: funct7=0x01, rs2=x9, rs1=x8, funct3=0x6, rd=x7, opcode=0x33 */
+	assert(instrs[2] == 0x029463B3);
+
+	/* remu x10, x11, x12: funct7=0x01, rs2=x12, rs1=x11, funct3=0x7, rd=x10, opcode=0x33 */
+	assert(instrs[3] == 0x02C5F533);
+
+	fclose(in);
+	fclose(out);
+	printf("\tOK M Extension DIV instructions work\n");
+}
+
+static void test_m_extension_with_abi_names() {
+	printf("Test 20: M Extension - Using ABI register names...\n");
+
+	const char *assembly =
+		".text\n"
+		"	mul a0, a1, a2\n"
+		"	div t0, t1, t2\n"
+		"	rem s0, s1, s2\n"
+		"	mulh ra, sp, gp\n";
+
+	FILE *in = tmpfile();
+	FILE *out = tmpfile();
+	fputs(assembly, in);
+	rewind(in);
+
+	Assembler assembler;
+	assembler.first_pass(in);
+	assembler.second_pass(in, out);
+
+	/* Verify output size - 4 instructions = 16 bytes */
+	fseek(out, 0, SEEK_END);
+	long size = ftell(out);
+	assert(size == 16);
+
+	/* Verify instruction encodings */
+	rewind(out);
+	uint32_t instrs[4];
+	size_t count = fread(instrs, sizeof(uint32_t), 4, out);
+	assert(count == 4);
+
+	/* mul a0, a1, a2 -> mul x10, x11, x12 */
+	assert(instrs[0] == 0x02C58533);
+
+	/* div t0, t1, t2 -> div x5, x6, x7 */
+	assert(instrs[1] == 0x027342B3);
+
+	/* rem s0, s1, s2 -> rem x8, x9, x18 */
+	assert(instrs[2] == 0x0324E433);
+
+	/* mulh ra, sp, gp -> mulh x1, x2, x3 */
+	assert(instrs[3] == 0x023110B3);
+
+	fclose(in);
+	fclose(out);
+	printf("\tOK M Extension with ABI names works\n");
+}
+
+static void test_m_extension_mixed_program() {
+	printf("Test 21: M Extension - Mixed program with labels...\n");
+
+	const char *assembly =
+		".text\n"
+		"main:\n"
+		"	addi a0, zero, 6\n"
+		"	addi a1, zero, 7\n"
+		"	mul a2, a0, a1\n"
+		"	div a3, a2, a1\n"
+		"	rem a4, a2, a0\n"
+		"	ret\n";
+
+	FILE *in = tmpfile();
+	FILE *out = tmpfile();
+	fputs(assembly, in);
+	rewind(in);
+
+	Assembler assembler;
+	assembler.first_pass(in);
+	assembler.adjust_labels(assembler.get_text_size());
+	assembler.second_pass(in, out);
+
+	/* Verify output size - 6 instructions = 24 bytes */
+	fseek(out, 0, SEEK_END);
+	long size = ftell(out);
+	assert(size == 24);
+
+	/* Verify we can read all instructions */
+	rewind(out);
+	uint32_t instrs[6];
+	size_t count = fread(instrs, sizeof(uint32_t), 6, out);
+	assert(count == 6);
+
+	/* Check the M extension instructions are encoded correctly */
+	/* mul a2, a0, a1 -> mul x12, x10, x11 */
+	assert(instrs[2] == 0x02B50633);
+
+	/* div a3, a2, a1 -> div x13, x12, x11 */
+	assert(instrs[3] == 0x02B646B3);
+
+	/* rem a4, a2, a0 -> rem x14, x12, x10 */
+	assert(instrs[4] == 0x02A66733);
+
+	fclose(in);
+	fclose(out);
+	printf("\tOK M Extension mixed program works\n");
+}
+
 int main(void) {
 	printf("=== RISC-V Assembler Comprehensive Tests ===\n\n");
 
@@ -631,7 +821,11 @@ int main(void) {
 	test_ascii_directives();
 	test_forward_backward_labels();
 	test_multiple_data_items();
+	test_m_extension_mul();
+	test_m_extension_div();
+	test_m_extension_with_abi_names();
+	test_m_extension_mixed_program();
 
-	printf("\n=== All %d tests passed! ===\n", 17);
+	printf("\n=== All %d tests passed! ===\n", 21);
 	return 0;
 }
