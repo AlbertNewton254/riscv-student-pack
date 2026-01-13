@@ -302,16 +302,28 @@ buffer:
 
 ```
 riscv-student-pack/
-|-- assembler/
-|   |-- riscv_assembler     Use this
-|   '-- [source files]
-|-- emulator/
-|   |-- riscv_emulator      Use this
-|   '-- [source files]
-|-- tests/                  Explore examples here
-|-- Makefile
-|-- README.md               Full documentation
-'-- QUICKSTART.md           This file
+├── assembler/
+│   ├── riscv_assembler     Use this
+│   ├── include/
+│   │   └── assembler.hpp
+│   └── src/
+│       └── [source files]
+├── emulator/
+│   ├── riscv_emulator      Use this
+│   ├── include/
+│   │   ├── cpu.hpp
+│   │   ├── emulator.hpp
+│   │   ├── instructions.hpp
+│   │   └── memory.hpp
+│   └── src/
+│       └── [source files]
+├── tests/                  Explore examples here
+│   ├── assembler/
+│   ├── emulator/
+│   └── integration/
+├── Makefile
+├── README.md               Full documentation
+└── QUICKSTART.md           This file
 ```
 
 ## Getting Help

@@ -38,13 +38,15 @@ riscv-student-pack/
 │   ├── riscv_emulator       Executable
 │   ├── include/
 │   │   ├── cpu.hpp
-│   │   ├── memory.hpp
-│   │   └── instructions.hpp
+│   │   ├── emulator.hpp
+│   │   ├── instructions.hpp
+│   │   └── memory.hpp
 │   └── src/
 │       ├── main.cpp
 │       ├── cpu.cpp
-│       ├── memory.cpp
-│       └── instructions.cpp
+│       ├── emulator.cpp
+│       ├── instructions.cpp
+│       └── memory.cpp
 ├── tests/                   Test infrastructure
 │   ├── Makefile
 │   ├── README.md

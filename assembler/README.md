@@ -16,13 +16,13 @@ assembler/
 ├── include/
 │   └── assembler.hpp        Main assembler class
 └── src/
-    ├── main.cpp             Entry point and CLI
-    ├── constructor.cpp      Assembler initialization
-    ├── first_pass.cpp       Symbol table building
-    ├── second_pass.cpp      Instruction encoding
-    ├── encode.cpp           Instruction format encoding
-    ├── expand_pseudoinstruction.cpp
     ├── adjust_labels.cpp    Label address calculation
+    ├── constructor.cpp      Assembler initialization
+    ├── encode.cpp           Instruction format encoding
+    ├── expand_pseudoinstruction.cpp  Pseudoinstruction expansion
+    ├── first_pass.cpp       Symbol table building
+    ├── main.cpp             Entry point and CLI
+    ├── second_pass.cpp      Instruction encoding
     └── utils.cpp            Utility functions
 ```
 
@@ -200,13 +200,13 @@ Debug output shows:
 
 #### Source Files
 
-- main.cpp - Entry point and argument parsing
+- adjust_labels.cpp - Label address calculation
 - constructor.cpp - Assembler initialization
-- first_pass.cpp - Symbol table building
-- second_pass.cpp - Instruction encoding
 - encode.cpp - Instruction format encoding
 - expand_pseudoinstruction.cpp - Pseudoinstruction expansion
-- adjust_labels.cpp - Label address calculation
+- first_pass.cpp - Symbol table building
+- main.cpp - Entry point and argument parsing
+- second_pass.cpp - Instruction encoding
 - utils.cpp - Utility functions (parsing, formatting)
 
 #### Symbol Table

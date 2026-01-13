@@ -15,13 +15,15 @@ emulator/
 ├── riscv_emulator           Executable
 ├── include/
 │   ├── cpu.hpp              CPU class and registers
-│   ├── memory.hpp           Memory management
-│   └── instructions.hpp     Instruction decoding
+│   ├── emulator.hpp         Emulator class (CPU + Memory)
+│   ├── instructions.hpp     Instruction decoding
+│   └── memory.hpp           Memory management
 └── src/
-    ├── main.cpp             Entry point and CLI
     ├── cpu.cpp              CPU fetch-decode-execute
-    ├── memory.cpp           Memory operations
-    └── instructions.cpp     Instruction formatting
+    ├── emulator.cpp         Emulator implementation
+    ├── instructions.cpp     Instruction formatting
+    ├── main.cpp             Entry point and CLI
+    └── memory.cpp           Memory operations
 ```
 
 ## Features
@@ -49,6 +51,12 @@ The emulator implements a classic processor pipeline:
 4. Repeat until program exit or error
 
 #### Core Components
+
+**Emulator Class** (include/emulator.hpp, src/emulator.cpp)
+- Owns and manages CPU and Memory instances
+- Provides high-level interface for emulation
+- Initializes components with proper configuration
+- Coordinates execution flow
 
 **CPU Class** (include/cpu.hpp, src/cpu.cpp)
 - 32 registers: std::array<uint32_t, 32>
@@ -238,9 +246,10 @@ Executed: addi x10, x0, 42
 
 #### Source Files
 
-- main.cpp - Entry point, argument parsing, binary loading
 - cpu.cpp - CPU state, fetch-decode-execute, register ops
+- emulator.cpp - Emulator class implementation (manages CPU and Memory)
 - instructions.cpp - Instruction decoding and formatting
+- main.cpp - Entry point, argument parsing, binary loading
 - memory.cpp - Memory access with bounds checking
 
 #### Instruction Encoding
