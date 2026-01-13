@@ -48,6 +48,18 @@ static const char* get_instruction_name(uint8_t opcode, uint8_t funct3, uint8_t 
 			} else if (funct7 == 0x20) {
 				if (funct3 == 0x0) return "sub";
 				if (funct3 == 0x5) return "sra";
+			} else if (funct7 == 0x01) {
+				/* M Extension */
+				switch (funct3) {
+					case 0x0: return "mul";
+					case 0x1: return "mulh";
+					case 0x2: return "mulhsu";
+					case 0x3: return "mulhu";
+					case 0x4: return "div";
+					case 0x5: return "divu";
+					case 0x6: return "rem";
+					case 0x7: return "remu";
+				}
 			}
 			return "alu-r";
 		case 0x13: /* I-type ALU */
