@@ -433,8 +433,8 @@ cpu_status_t CPU::execute(Memory *mem, Instruction *instr) {
 			} else {
 				uint32_t result = execute_alu(rs1_val, rs2_val, instr->get_funct3(), instr->get_funct7(), false);
 				reg_write(instr->get_rd(), result);
-				break;
 			}
+			break;
 		}
 
 		case INSTR_I_TYPE: {
